@@ -1,24 +1,78 @@
+from typing import Tuple, Optional
 from aiogram.types import CallbackQuery
-from bot.menu.main_menu import create_main_menu
-from bot.menu.submenu import create_submenu
+from aiogram.fsm.context import FSMContext
+from bot.modules.menu import create_menu
+import logging
 
-async def handle_button(callback: CallbackQuery):
+logger = logging.getLogger(__name__)
+
+
+def parse_callback_data(data: str) -> Optional[Tuple[str, str, str]]:
     """
-    Обрабатывает нажатия на кнопки.
-
-    :param callback: CallbackQuery от пользователя
+    Парсит callback_data, ожидая формат "menu:user_id:menu_key".
+    Возвращает кортеж (prefix, user_id, menu_key),
+    если данные корректны, иначе None.
     """
-    menu_key = callback.data.split(":")[1]
+    parts = data.split(":")
+    if len(parts) < 3:
+        return None
+    return parts[0], parts[1], parts[2]
 
-    if menu_key == "main":
-        await callback.message.edit_text("Главное меню:", reply_markup=create_main_menu())
-    else:
-        await callback.message.edit_text(f"Раздел: {menu_key.capitalize()}:", reply_markup=create_submenu(menu_key))
 
-def register_button_handlers(dp):
+async def handle_button(callback: CallbackQuery, state: FSMContext) -> None:
     """
-    Регистрирует обработчик нажатий на кнопки.
+    Обрабатывает нажатия на кнопки меню.
 
-    :param dp: Экземпляр Dispatcher
+    Если callback_data соответствует формату "menu:user_id:menu_key", то:
+      - Если menu_key == "main", открывает главное меню.
+      - Иначе открывает подменю для указанного раздела.
+    В случае ошибки или некорректных данных отправляет уведомление пользователю.
     """
-    dp.callback_query.register(handle_button, lambda callback: callback.data.startswith("menu:"))
+    try:
+        parsed = parse_callback_data(callback.data)
+        if parsed is None:
+            await callback.answer("Некорректные данные кнопки.")
+            logger.error(f"Некорректные данные callback_data: {callback.data}")
+            return
+
+        prefix, user_id, menu_key = parsed
+
+        if menu_key == "main":
+            logger.debug(f"Открытие главного меню для user_id={user_id}")
+            menu, _ = create_menu(user_id=user_id)
+            # Получаем текст главного меню из состояния
+            # или используем значение по умолчанию.
+            user_data = await state.get_data()
+            main_menu_text = user_data.get("main_menu_text", "Главное меню:")
+            await callback.message.edit_text(
+                main_menu_text,
+                reply_markup=menu,
+            )
+        else:
+            logger.debug(f"Открытие подменю '{menu_key}' для user_id={user_id}")
+            menu, section_name = create_menu(menu_key=menu_key, user_id=user_id)
+            if menu.inline_keyboard:
+                await callback.message.edit_text(
+                    f"Раздел: {section_name}:\nВыберите из меню ниже:",
+                    reply_markup=menu,
+                )
+            else:
+                await callback.answer("Этот раздел пуст.",
+                                      show_alert=True)
+    except Exception as e:
+        logger.error(f"Ошибка при обработке кнопки: {e}",
+                     exc_info=True)
+        await callback.answer("Произошла ошибка. Попробуйте снова.",
+                              show_alert=True)
+
+
+def register_button_handlers(dp) -> None:
+    """
+    Регистрирует обработчик callback_query для кнопок меню.
+    Использует фильтр, чтобы обрабатывать только callback_data,
+    начинающиеся с "menu:".
+    """
+    dp.callback_query.register(
+        handle_button,
+        lambda callback: callback.data.startswith("menu:")
+    )

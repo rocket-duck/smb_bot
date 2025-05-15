@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  telegram_bot:
+    build: .
+    container_name: telegram_bot
+    restart: always
+    env_file:
+      - bot/.env
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    command: make bot-run
