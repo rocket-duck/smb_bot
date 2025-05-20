@@ -1,11 +1,13 @@
 import logging
-from datetime import datetime
-from typing import Tuple
+import asyncio
 
-from aiogram import Router, types
+from datetime import datetime, timezone
+from typing import Tuple
+from html import escape
+from aiogram import Router, types, Dispatcher
 from aiogram.filters import Command
-from bot.database import SessionLocal
-from bot.models import AdminUser
+from aiogram.filters.callback_data import CallbackData
+from bot.services.access_service import has_access, grant_access
 from bot.config.flags import GET_ACCESS_ENABLE
 from bot.config.tokens import ADMIN_USER_ID
 
@@ -14,27 +16,48 @@ logger = logging.getLogger(__name__)
 router = Router()
 
 
-async def access_already_granted(message: types.Message):
-    session = SessionLocal()
-    try:
-        record = session.query(AdminUser).filter(
-            AdminUser.user_id == str(message.from_user.id),
-            AdminUser.is_active.is_(True)
-        ).first()
-        return record is not None
-    except Exception as e:
-        logger.error("Ошибка проверки доступа: %s", e)
-        return False
-    finally:
-        session.close()
+class AccessCallback(CallbackData, prefix="access"):
+    action: str
+    user_id: str
+
+
+@router.message.middleware()
+async def check_get_access_enabled(handler, event, data):
+    """
+    Middleware to block /get_access when feature flag is off.
+    """
+    if not GET_ACCESS_ENABLE:
+        logger.debug("GET_ACCESS_ENABLE is False.")
+        await event.answer("Команда временно отключена.")
+        return
+    return await handler(event, data)
+
+
+import functools
+def catch_exceptions(fn):
+    """
+    Decorator to catch unexpected errors in handlers.
+    """
+    @functools.wraps(fn)
+    async def wrapper(*args, **kwargs):
+        try:
+            return await fn(*args, **kwargs)
+        except Exception as e:
+            logger.exception(f"Unexpected error in {fn.__name__}: {e}")
+            target = args[0]
+            # Send generic error reply for both Message and CallbackQuery
+            await target.answer("Произошла внутренняя ошибка. Попробуйте позже.")
+    return wrapper
 
 
 def prepare_admin_request(message: types.Message) \
         -> Tuple[str, types.InlineKeyboardMarkup]:
     user_id = message.from_user.id
-    full_name = message.from_user.full_name
-    username = message.from_user.username or ""
-    request_time = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
+    raw_full_name = message.from_user.full_name or ""
+    raw_username = message.from_user.username or ""
+    full_name = escape(raw_full_name)
+    username = escape(raw_username)
+    request_time = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
     admin_text = (
         f"Запрос на доступ!\n\n"
         f"User ID: {user_id}\n"
@@ -51,107 +74,88 @@ def prepare_admin_request(message: types.Message) \
     return admin_text, keyboard
 
 
+@router.message(
+    Command(commands=["get_access"]),
+    lambda message: message.chat.type == "private"
+)
+@catch_exceptions
 async def handle_get_access(message: types.Message) -> None:
-    if message.chat.type != "private":
-        await message.answer("Эта команда доступна только в "
-                             "личных сообщениях с ботом.")
-        return
-
-    if not GET_ACCESS_ENABLE:
-        await message.answer("Команда временно отключена.")
-        return
-
-    if await access_already_granted(message):
+    """
+    Handler for /get_access: initiates access request.
+    """
+    logger.info(f"handle_get_access called by user {message.from_user.id}")
+    loop = asyncio.get_running_loop()
+    # Check existing access
+    if await loop.run_in_executor(None, has_access, message.from_user.id):
         await message.answer("Доступ уже предоставлен")
         return
 
-    # Если доступа нет, отправляем запрос администратору
+    # No access yet, request sent to admin
     await message.answer("Ожидайте предоставление доступа.")
-
     admin_text, keyboard = prepare_admin_request(message)
     try:
-        # Замените "YOUR_ADMIN_CHAT_ID" на нужный ID
-        # или используйте переменную из конфигурации
-        await message.bot.send_message(chat_id=ADMIN_USER_ID,
-                                       text=admin_text,
-                                       reply_markup=keyboard)
+        await message.bot.send_message(
+            chat_id=ADMIN_USER_ID,
+            text=admin_text,
+            reply_markup=keyboard
+        )
     except Exception as e:
         logger.error("Ошибка отправки запроса администратору: %s", e)
-        await message.answer("Произошла ошибка при отправке запроса "
-                             "администратору. Попробуйте позже.")
+        await message.answer(
+            "Произошла ошибка при отправке запроса администратору. Попробуйте позже."
+        )
 
 
-async def handle_accept_callback(callback: types.CallbackQuery,
-                                 user_id_str: str,
-                                 target_user_id: int) \
-        -> None:
-    session = SessionLocal()
+@router.callback_query(AccessCallback.filter())
+@catch_exceptions
+async def handle_accept_callback(
+    callback: types.CallbackQuery,
+    callback_data: AccessCallback
+) -> None:
+    """
+    Grant access to the user based on admin approval.
+    """
+    logger.info(f"handle_accept_callback by admin {callback.from_user.id} for user {callback_data.user_id}")
+    loop = asyncio.get_running_loop()
+    target_user_id = int(callback_data.user_id)
+    admin_info = {
+        "user_id": callback.from_user.id,
+        "full_name": callback.from_user.full_name or "",
+        "username": callback.from_user.username or ""
+    }
+    # Grant access via service
+    await loop.run_in_executor(None, grant_access, admin_info, target_user_id)
+    callback.message.edit_reply_markup(reply_markup=None)
+    callback.bot.send_message(
+        chat_id=target_user_id,
+        text="Доступ предоставлен"
+    )
+    await callback.answer("Доступ предоставлен.")
+
+
+@router.callback_query(AccessCallback.filter())
+@catch_exceptions
+async def handle_decline_callback(
+    callback: types.CallbackQuery,
+    callback_data: AccessCallback
+) -> None:
+    target_user_id = int(callback_data.user_id)
+    """
+    Decline access request.
+    """
+    logger.info(f"handle_decline_callback by admin {callback.from_user.id} for user {target_user_id}")
     try:
-        admin_record = session.query(AdminUser).filter(
-            AdminUser.user_id == user_id_str
-        ).first()
-        if not admin_record:
-            admin_record = AdminUser(
-                user_id=user_id_str,
-                full_name=callback.from_user.full_name,
-                username=callback.from_user.username or "",
-                added_at=datetime.utcnow(),
-                is_active=True
-            )
-            session.add(admin_record)
-            session.commit()
-        else:
-            if not admin_record.is_active:
-                admin_record.is_active = True
-                admin_record.added_at = datetime.utcnow()
-                session.commit()
-        await callback.message.edit_reply_markup(reply_markup=None)
-        await callback.bot.send_message(chat_id=target_user_id,
-                                        text="Доступ предоставлен")
-        await callback.answer("Доступ предоставлен.")
-    except Exception as e:
-        session.rollback()
-        logger.error("Ошибка обработки accept callback: %s", e)
-        await callback.answer("Произошла ошибка. Попробуйте позже.")
-    finally:
-        session.close()
-
-
-async def handle_decline_callback(callback: types.CallbackQuery,
-                                  target_user_id: int) -> None:
-    try:
-        await callback.message.edit_reply_markup(reply_markup=None)
-        await callback.bot.send_message(chat_id=target_user_id,
-                                        text="Вам отказано в доступе")
+        callback.message.edit_reply_markup(reply_markup=None)
+        callback.bot.send_message(chat_id=target_user_id,
+                                  text="Вам отказано в доступе")
         await callback.answer("Доступ отклонён.")
     except Exception as e:
         logger.error("Ошибка обработки decline callback: %s", e)
         await callback.answer("Произошла ошибка. Попробуйте позже.")
 
 
-async def process_access_callback(callback: types.CallbackQuery) -> None:
-    data_parts = callback.data.split(":")
-    if len(data_parts) != 3:
-        await callback.answer("Некорректные данные.")
-        return
-
-    _, action, user_id_str = data_parts
-    try:
-        target_user_id = int(user_id_str)
-    except ValueError:
-        await callback.answer("Некорректный user id.")
-        return
-
-    if action == "accept":
-        await handle_accept_callback(callback, user_id_str, target_user_id)
-    elif action == "decline":
-        await handle_decline_callback(callback, target_user_id)
-    else:
-        await callback.answer("Неизвестное действие.")
-
-
-def register_get_access_handler(dp) -> None:
-    dp.message.register(handle_get_access,
-                        Command(commands=["get_access"]))
-    dp.callback_query.register(process_access_callback,
-                               lambda cq: cq.data.startswith("access:"))
+def register(dp: Dispatcher) -> None:
+    """
+    Регистрирует обработчики get_access и процессинг callback’ов через Router.
+    """
+    dp.include_router(router)

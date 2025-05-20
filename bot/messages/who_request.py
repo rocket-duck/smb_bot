@@ -1,17 +1,14 @@
 import logging
+import re
+
 from aiogram.types import Message, FSInputFile
 from pathlib import Path
+
+from bot.config.flags import TRIGGER_PATTERNS
 
 # Путь к папке с изображениями
 BASE_DIR = Path(__file__).resolve().parent.parent
 IMG_DIR = BASE_DIR / "utils" / "img"
-
-# Триггерные фразы
-TRIGGERS = ["а кто",
-            "а почему",
-            "а когда",
-            "а где",
-            "а как"]
 
 
 async def handle_who_request(message: Message,
@@ -32,11 +29,11 @@ async def handle_who_request(message: Message,
 
     # Проверяем, начинается ли сообщение с одной из триггерных фраз
     message_text = message.text.lower()
-    if not any(message_text.startswith(trigger) for trigger in TRIGGERS):
+    if not any(re.search(pattern, message_text) for pattern in TRIGGER_PATTERNS):
         return
 
     logging.debug(f"Обнаружен запрос '{message_text}' "
-                  f"с одним из триггеров: {TRIGGERS}")
+                  f"с одним из триггеров: {TRIGGER_PATTERNS}")
 
     # Путь к конкретному изображению
     image_path = IMG_DIR / "a_kto_cenz.png"

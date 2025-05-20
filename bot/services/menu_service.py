@@ -65,9 +65,6 @@ async def handle_menu(callback: types.CallbackQuery):
         logger.error(f"Incorrect menu callback_data format: {data}")
         await callback.answer("Ошибка навигации. Попробуйте снова.", show_alert=True)
         return
-    if callback.from_user.id != uid:
-        await callback.answer("Это не ваша кнопка.", show_alert=True)
-        return
 
     key = None if menu_key == "main" else menu_key
     keyboard, title = create_menu(key, uid)

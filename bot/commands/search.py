@@ -1,24 +1,93 @@
-import asyncio
 import logging
-import openai
-from typing import Optional
+import re
+import time
 
+from collections import OrderedDict
+from typing import Optional
 from aiogram import Router, types
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-from bot.config.tokens import OPENAI_API_KEY
-from bot.config.gpt_prompt import PROMPT
+from bot.services.search_service import ask_gpt
 
-# Настройка логирования
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s"
-)
 
-openai.api_key = OPENAI_API_KEY
+# Кэш для ответов поиска
+class SearchCache:
+    def __init__(self, max_size=100, ttl=3600):
+        self.max_size = max_size
+        self.ttl = ttl  # seconds
+        self._cache = OrderedDict()
+        self._ops = 0  # счетчик обращений
+
+    def _cleanup(self):
+        now = time.time()
+        # Удаляем устаревшие записи
+        to_delete = []
+        for key, (answer, ts) in list(self._cache.items()):
+            if now - ts > self.ttl:
+                to_delete.append(key)
+        for key in to_delete:
+            del self._cache[key]
+
+    def get(self, key):
+        self._ops += 1
+        if self._ops % 20 == 0:
+            self._cleanup()
+        item = self._cache.get(key)
+        if item:
+            answer, ts = item
+            return answer
+        return None
+
+    def set(self, key, answer):
+        self._ops += 1
+        if self._ops % 20 == 0:
+            self._cleanup()
+        if key in self._cache:
+            del self._cache[key]
+        self._cache[key] = (answer, time.time())
+        if len(self._cache) > self.max_size:
+            self._cache.popitem(last=False)
+
+search_cache = SearchCache(max_size=100, ttl=3600)
+
+logger = logging.getLogger(__name__)
 router = Router()
+
+
+def sanitize_query(query: str) -> str:
+    """
+    Очищает пользовательский ввод от потенциально опасных символов.
+    Удаляет управляющие символы и экранирует угловые скобки.
+    Оставляет буквы, цифры, пробелы и базовую пунктуацию.
+    Ограничивает длину результата 200 символами.
+    """
+    cleaned = re.sub(r'[<>]', '', query)
+    cleaned = re.sub(r'[^\w\s\?\!\.,\-]', '', cleaned)  # убран \:
+    result = cleaned.lstrip()
+    return result[:200]  # limit length
+
+
+async def cleanup_search_state(message, state):
+    data = await state.get_data()
+    msg_id = data.get("cancel_msg_id")
+    if msg_id:
+        try:
+            await message.bot.delete_message(chat_id=message.chat.id, message_id=msg_id)
+        except Exception:
+            pass
+    await state.clear()
+
+
+@router.message.middleware()
+async def catch_exceptions(handler, event, data):
+    try:
+        return await handler(event, data)
+    except Exception as e:
+        logger.exception("Unhandled error in search handler: %s", e)
+        await event.answer("Внутренняя ошибка, попробуйте позже.")
 
 
 # Определяем состояния для диалога поиска
@@ -28,116 +97,125 @@ class SearchState(StatesGroup):
 
 @router.message(Command("search", prefix="/"))
 async def cmd_search(message: types.Message, state: FSMContext) -> None:
-    """
-    Обрабатывает команду /search.
-    Если команда вызвана с дополнительным текстом
-    или в реплае – обрабатывается немедленно.
-    Иначе переводит пользователя в режим ожидания ввода,
-    сохраняя ID вызывающего.
-    """
     parts = message.text.split(maxsplit=1)
     additional_text: str = parts[1].strip() if len(parts) > 1 else ""
-    reply_text: str = ""
-    if message.reply_to_message and message.reply_to_message.text:
-        reply_text = message.reply_to_message.text.strip()
 
-    # Формирование итогового запроса на основе реплая и дополнительного текста
-    if reply_text:
-        user_query: str = reply_text + (f" {additional_text}"
-                                        if additional_text else "")
-        logging.info("Команда /search вызвана в реплае "
-                     "пользователем %s, итоговый запрос: %s",
-                     message.from_user.id, user_query)
+    if message.reply_to_message and message.reply_to_message.text:
+        original = message.reply_to_message.text.strip()
+        combined = f"{original} {additional_text}".strip()
+        user_query = sanitize_query(combined)
+        # Debounce: если такой запрос только что был, не повторяем
+        data = await state.get_data()
+        if data.get("last_query") == user_query:
+            await message.answer("Вы уже отправляли этот запрос.")
+            return
+        await state.update_data(last_query=user_query)
+        logger.info(
+            "Команда /search вызвана в реплае пользователем %s, итоговый запрос: %s",
+            message.from_user.id, user_query
+        )
         await process_immediate_query(user_query, message, state)
         return
-    elif additional_text:
-        user_query = additional_text
-        logging.info("Команда /search вызвана с запросом "
-                     "от пользователя %s: %s",
-                     message.from_user.id, user_query)
+
+    if additional_text:
+        user_query = sanitize_query(additional_text)
+        data = await state.get_data()
+        if data.get("last_query") == user_query:
+            await message.answer("Вы уже отправляли этот запрос.")
+            return
+        await state.update_data(last_query=user_query)
+        logger.info(
+            "Команда /search вызвана с запросом от пользователя %s: %s",
+            message.from_user.id, user_query
+        )
         await process_immediate_query(user_query, message, state)
         return
-    else:
-        # Если дополнительных данных нет – переводим в режим ожидания ввода
-        logging.info("Команда /search вызвана без запроса, "
-                     "ожидается ввод пользователя %s",
-                     message.from_user.id)
-        await message.answer("Введите текст запроса для "
-                             "поиска (или напишите «отмена»):")
-        await state.update_data(user_id=message.from_user.id)
-        await state.set_state(SearchState.waiting_for_query)
-        asyncio.create_task(search_timeout(message, state))
+
+    logger.info(
+        "Команда /search вызвана без запроса, ожидается ввод пользователя %s",
+        message.from_user.id
+    )
+    cancel_inline_kb = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="Отмена", callback_data="cancel_search")]
+        ]
+    )
+    sent = await message.answer(
+        "Введите текст запроса для поиска или нажмите Отмена",
+        reply_markup=cancel_inline_kb
+    )
+    await state.update_data(user_id=message.from_user.id, cancel_msg_id=sent.message_id)
+    await state.set_state(SearchState.waiting_for_query)
 
 
 async def process_immediate_query(user_query: str,
                                   message: types.Message,
                                   state: FSMContext) -> None:
-    """
-    Обрабатывает запрос, который можно выполнить сразу.
-    Записывает запрос в базу, отправляет сообщение "Обрабатываю ваш запрос...",
-    вызывает ChatGPT и отправляет результат в чат.
-    """
     log_search_request_db(message, user_query)
-    await message.answer("Обрабатываю ваш запрос...")
-    answer: str = await query_openai(user_query, message)
+    cache_key = (message.from_user.id, user_query)
+    cached = search_cache.get(cache_key)
+    if cached:
+        logger.info("Используем кэшированный ответ для запроса: %s", user_query)
+        answer = cached
+    else:
+        await message.answer("Обрабатываю ваш запрос...")
+        try:
+            answer: str = await ask_gpt(user_query)
+        except Exception as e:
+            logger.error("Ошибка в ask_gpt: %s", e)
+            await message.answer("Ошибка при обработке запроса. Попробуйте позже.")
+            await cleanup_search_state(message, state)
+            return
+        search_cache.set(cache_key, answer)
     await message.answer(answer)
-    await state.clear()
+    await cleanup_search_state(message, state)
 
 
-async def search_timeout(message: types.Message, state: FSMContext) -> None:
+async def is_command(message: types.Message) -> bool:
     """
-    Если в течение 120 секунд не поступил запрос – отменяет режим ожидания.
+    Фильтр, пропускающий только команды (тексты, начинающиеся с '/').
     """
-    await asyncio.sleep(120)
-    current_state: Optional[str] = await state.get_state()
-    if current_state == SearchState.waiting_for_query.state:
-        logging.info("Таймаут: пользователь %s не ввёл запрос за 120 секунд",
-                     message.from_user.id)
-        await message.answer("Код ошибки R0604.\n"
-                             "Время ожидания истекло, операция отменена.")
-        await state.clear()
+    text = message.text or ""
+    return text.strip().startswith("/")
 
 
-@router.message(lambda m: m.text and m.text.strip().startswith("/"),
-                SearchState.waiting_for_query)
+@router.message(is_command, SearchState.waiting_for_query)
 async def cancel_on_command(message: types.Message, state: FSMContext) -> None:
-    """
-    Если в режиме ожидания пользователь вызывает
-    другую команду – отменяет ожидание.
-    """
-    logging.info("Пользователь %s вызвал другую команду, "
-                 "завершаем ожидание поиска",
-                 message.from_user.id)
-    await state.clear()
+    logger.info("User %s initiated other command: cancel search", message.from_user.id)
+    await cleanup_search_state(message, state)
+    await message.answer("Операция отменена.")
 
 
 @router.message(SearchState.waiting_for_query)
 async def process_search_query(message: types.Message,
                                state: FSMContext) -> None:
-    """
-    Обрабатывает ввод в режиме ожидания.
-    Проверяет, что сообщение пришло от того же
-    пользователя, который вызвал команду.
-    При вводе "отмена" или "cancel" – отменяет операцию.
-    Иначе обрабатывает запрос.
-    """
     data = await state.get_data()
     invoking_user: Optional[int] = data.get("user_id")
     if message.from_user.id != invoking_user:
-        logging.debug("Игнорирую сообщение от пользователя %s, "
-                      "ожидался ввод от %s",
-                      message.from_user.id, invoking_user)
+        logger.debug("Игнорирую сообщение от пользователя %s, "
+                     "ожидался ввод от %s",
+                     message.from_user.id, invoking_user)
         return
 
     if message.text.strip().lower() in ["отмена", "cancel"]:
-        logging.info("Пользователь %s ввёл отмену", message.from_user.id)
-        await message.answer("Операция отменена.")
-        await state.clear()
+        logger.info("Пользователь %s ввёл отмену", message.from_user.id)
+        await cleanup_search_state(message, state)
         return
 
-    user_query = message.text.strip()
-    logging.info("Пользователь %s ввёл запрос: %s",
-                 message.from_user.id, user_query)
+    raw_query = message.text.strip()
+    user_query = sanitize_query(raw_query)
+
+    # Debounce: если такой запрос уже был только что, не повторяем
+    last_query = data.get("last_query")
+    if last_query == user_query:
+        logger.info("Повторный запрос от пользователя %s: %s", message.from_user.id, user_query)
+        await message.answer("Вы уже отправляли этот запрос.")
+        await cleanup_search_state(message, state)
+        return
+
+    logger.info("Пользователь %s ввёл запрос: %s",
+                message.from_user.id, user_query)
+    await state.update_data(last_query=user_query)
     await process_immediate_query(user_query, message, state)
 
 
@@ -160,40 +238,28 @@ def log_search_request_db(message: types.Message, user_query: str) -> None:
         session.commit()
     except Exception as e:
         session.rollback()
-        logging.error("Ошибка при записи лога запроса в базу данных: %s", e)
+        logger.error("Ошибка при записи лога запроса в базу данных: %s", e)
     finally:
         session.close()
 
 
-async def query_openai(user_query: str, message: types.Message) -> str:
+def register(dp) -> None:
     """
-    Отправляет запрос в OpenAI и возвращает ответ.
+    Регистрирует маршруты для команды /search в переданном Dispatcher.
     """
-    try:
-        logging.info("Отправка запроса в OpenAI для пользователя %s",
-                     message.from_user.id)
-        loop = asyncio.get_running_loop()
-        response = await loop.run_in_executor(
-            None,
-            lambda: openai.chat.completions.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "system", "content": PROMPT},
-                    {"role": "user", "content": user_query}
-                ],
-                max_tokens=500,
-                temperature=0.7
-            )
-        )
-        answer: str = response.choices[0].message.content.strip()
-        logging.info("Получен ответ от OpenAI для пользователя %s: %s",
-                     message.from_user.id, answer)
-        return answer
-    except Exception as e:
-        logging.error("Ошибка вызова OpenAI API для пользователя %s: %s",
-                      message.from_user.id, e)
-        return "Произошла ошибка при обработке запроса. Попробуйте позже."
-
-
-def register_search_handler(dp) -> None:
     dp.include_router(router)
+
+@router.callback_query(lambda c: c.data == "cancel_search", SearchState.waiting_for_query)
+async def cancel_search_callback(callback_query: types.CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    msg_id = data.get("cancel_msg_id")
+    await state.clear()
+    # Удаляем сообщение с инлайн-кнопкой "Отмена" (и текстом "Введите текст запроса для поиска:")
+    if msg_id:
+        try:
+            await callback_query.bot.delete_message(
+                chat_id=callback_query.message.chat.id,
+                message_id=msg_id
+            )
+        except Exception:
+            pass

@@ -1,186 +1,67 @@
-import asyncio
+from bot.config.flags import BOT_TAG_ENABLE
 import logging
-from datetime import datetime, timedelta
-import random
 
+from aiogram import Router, Dispatcher
 from aiogram.types import Message
-from aiogram.fsm.context import FSMContext
 
-from bot.messages.message_parse import find_links_by_keyword
-from bot.messages.who_request import handle_who_request
-from bot.messages.bot_tag import handle_bot_tag
-from bot.utils.participants import update_participant
-from bot.messages.maslina import handle_maslina   # импортируем новый модуль
-from bot.config.tokens import BOT_USERNAME
-from bot.config.flags import (
-    KEYWORD_RESPONSES_ENABLE,
-    TIMEOUT_RESPONSES_ENABLE,
-    WHO_REQUEST_ENABLE,
-    BOT_TAG_ENABLE,
-    MASLINA_ENABLE
+from bot.messages.filters import (
+    sanitize_text,
+    should_process_text,
+    no_fsm_filter,
+    skip_empty,
+    skip_slash_command,
 )
+from bot.messages.triggers import handle_fan_triggers, handle_bot_tag
+from bot.services.message_service import message_service
+from bot.services.parse_message_service import parse_message_service
+from bot.services.best_qa_participants_service import update_participant
 
-# Настройка времени таймаута (в минутах)
-TIMEOUT_MINUTES: int = 0
-
-# Хранилище для предотвращения повторных ответов (по чатам)
-recent_links: dict = {}  # Формат: {chat_id: {"url": время последнего ответа}}
-
-
-def should_process_text(text: str) -> bool:
-    """
-    Возвращает True, если текст сообщения должен быть обработан.
-    Проверяются:
-      - Если текст ровно равен упоминанию бота
-      - Если сообщение начинается со слеша (команда)
-      - Если функция парсинга сообщений отключена
-    """
-    if should_ignore_bot_mention(text, BOT_USERNAME):
-        logging.debug("Сообщение равно упоминанию бота, обработка прекращена.")
-        return False
-    if text.startswith("/"):
-        logging.debug(f"Сообщение {text} игнорируется, так как это команда.")
-        return False
-    if not KEYWORD_RESPONSES_ENABLE:
-        logging.debug("Функция парсинга сообщений отключена")
-        return False
-    return True
+logger = logging.getLogger(__name__)
 
 
-def should_ignore_bot_mention(text: str, bot_username) -> bool:
-    """
-    Возвращает True, если текст сообщения ровно равен упоминанию бота.
-    """
-    normalized_username = bot_username[0] \
-        if isinstance(bot_username, tuple) \
-        else bot_username
-    return text.lower() == f"@{normalized_username.lower()}"
+router = Router()
+
+@router.message.middleware()  # Centralized error handling for all message handlers
+async def error_middleware(handler, event: Message, data: dict):
+    try:
+        return await handler(event, data)
+    except Exception as e:
+        logger.exception("Unexpected error in handler: %s", e)
+        # Notify the user of a generic internal error
+        await event.answer("Извините, произошла внутренняя ошибка. Попробуйте позже.")
+        return None
 
 
-async def handle_message(message: Message, state: FSMContext) -> None:
-    """
-    Основная функция для обработки текстовых сообщений пользователя.
-    """
-    if not message.text:
-        logging.debug("Сообщение не содержит текста, обработка пропущена.")
+@router.message(skip_slash_command, skip_empty, no_fsm_filter)
+async def handle_message(message: Message) -> None:
+    logger.info(
+        "Received message from user %s in chat %s: %s",
+        message.from_user.id,
+        message.chat.id,
+        message.text
+    )
+
+    # === 1. Реакция на тег бота (например, отправка видео) — теперь самым первым делом ===
+    logger.debug("Checking for bot tag...")
+    handled = await handle_bot_tag(message, BOT_TAG_ENABLE)
+    if handled:
+        logger.debug("Bot tag detected and handled, skipping further processing.")
         return
 
-    text: str = message.text.strip()
-
-    # Обновляем или добавляем участника в БД на основе сообщения
+    text = sanitize_text(message.text.strip())
     update_participant(message)
 
-    # Обработка дополнительных фановых триггеров
-    await handle_bot_tag(message, BOT_USERNAME, BOT_TAG_ENABLE)
-
-    if random.random() < 0.2:
-        await handle_who_request(message, WHO_REQUEST_ENABLE)
-    else:
-        logging.debug("Случайное условие не выполнено")
-
-    await handle_maslina(message, MASLINA_ENABLE)
-
-    # Если текст не проходит фильтрацию, дальнейшая обработка не требуется
     if not should_process_text(text):
         return
 
-    keyword: str = extract_keyword(message)
-    if not keyword:
-        return
+    keyword = text.lower()
+    results = parse_message_service.find_links(keyword)
+    await message_service.process_results(message, results)
 
-    results: list = find_links_by_keyword(keyword)
-    if results:
-        await process_results(message, results)
-    else:
-        logging.debug("Совпадений не найдено.")
+    # === 2. Fan triggers: маслина, картинки, кто и прочее (но только если не был тег бота) ===
+    logger.debug("Processing fan triggers.")
+    await handle_fan_triggers(message)
 
 
-def extract_keyword(message: Message) -> str:
-    """
-    Извлекает ключевое слово из сообщения.
-    """
-    if not message.text:
-        logging.debug(f"Сообщение не содержит текста: {message}")
-        return ""
-    keyword: str = message.text.strip().lower()
-    logging.debug(f"Извлечённое ключевое слово: {keyword}")
-    return keyword
-
-
-async def process_results(message: Message, results: list) -> None:
-    """
-    Обрабатывает результаты поиска ссылок.
-    """
-    filtered_results = (
-        filter_recent_links(message.chat.id, results)
-        if TIMEOUT_RESPONSES_ENABLE
-        else results
-    )
-
-    if filtered_results:
-        response: str = format_response(filtered_results)
-        logging.debug(f"Отправка ссылки: {response}")
-        await message.answer(response, reply_to_message_id=message.message_id)
-
-        # Планируем удаление ссылок из recent_links через таймаут
-        if TIMEOUT_RESPONSES_ENABLE:
-            for _, url in filtered_results:
-                asyncio.create_task(remove_link_after_timeout(message.chat.id,
-                                                              url))
-    else:
-        logging.debug("Все ссылки уже были отправлены недавно.")
-
-
-def filter_recent_links(chat_id: int, results: list) -> list:
-    """
-    Фильтрует ссылки, которые уже были отправлены недавно для конкретного чата.
-    """
-    filtered_results = []
-    chat_recent_links = recent_links.setdefault(chat_id, {})
-    for name, url in results:
-        if (url in chat_recent_links
-                and datetime.now() - chat_recent_links[url]
-                < timedelta(minutes=TIMEOUT_MINUTES)):
-            logging.debug(f"Пропуск отправки ссылки '{url}' "
-                          f"для чата {chat_id} (отправлялась недавно).")
-        else:
-            filtered_results.append((name, url))
-            chat_recent_links[url] = datetime.now()
-    return filtered_results
-
-
-def format_response(results: list) -> str:
-    """
-    Форматирует ответ для пользователя.
-    """
-    return ("Возможно это поможет разобраться:\n"
-            + "\n".join([f"{name}: {url}" for name, url in results]))
-
-
-async def remove_link_after_timeout(chat_id: int, url: str) -> None:
-    """
-    Удаляет ссылку из recent_links для конкретного чата через заданный таймаут.
-    """
-    await asyncio.sleep(TIMEOUT_MINUTES * 60)
-    chat_recent_links = recent_links.get(chat_id, {})
-    if url in chat_recent_links:
-        del chat_recent_links[url]
-        logging.debug(f"Ссылка '{url}' удалена из кэша для чата {chat_id}.")
-
-
-async def no_fsm_filter(message: Message, state: FSMContext) -> bool:
-    """
-    Фильтр для обработки сообщений, только если
-    у пользователя отсутствует активное FSM-состояние.
-    """
-    current_state = await state.get_state()
-    return ((current_state is None)
-            and bool(message.text)
-            and (not message.text.startswith("/")))
-
-
-def register_message_handlers(dp) -> None:
-    """
-    Регистрирует глобальный обработчик сообщений.
-    """
-    dp.message.register(handle_message, no_fsm_filter)
+def register_message_handlers(dp: Dispatcher) -> None:
+    dp.include_router(router)

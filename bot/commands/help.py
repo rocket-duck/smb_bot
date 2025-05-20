@@ -1,68 +1,55 @@
 import logging
+import functools
+import asyncio
+from html import escape
+from aiogram import Router, Dispatcher
 from aiogram.filters import Command
 from aiogram.types import Message
-from bot.modules.commands_list import get_all_commands
-from bot.database import SessionLocal
-from bot.models import AdminUser
+from bot.services.commands_service import get_all_command_defs
+from bot.services.admin_service import is_user_admin
+
+_cached_get_command_defs = functools.lru_cache(maxsize=None)(get_all_command_defs)
 
 logger = logging.getLogger(__name__)
+router = Router()
 
 
-def is_user_admin_db(user_id: int) -> bool:
+@router.message(Command(commands=["help"], prefix="/"))
+async def handle_help(message: Message) -> None:
     """
-    Проверяет, является ли пользователь администратором,
-    запрашивая наличие активной записи в таблице admin_users.
+    Отправляет список доступных команд, фильтруя по типу чата и правам пользователя.
     """
-    session = SessionLocal()
-    try:
-        admin_record = session.query(AdminUser).filter(
-            AdminUser.user_id == str(user_id),
-            AdminUser.is_active.is_(True)
-        ).first()
-        return admin_record is not None
-    except Exception as e:
-        logger.error("Ошибка проверки админа в БД: %s", e)
-        return False
-    finally:
-        session.close()
+    logger.info(f"Received /help from user {message.from_user.id} in chat {message.chat.id}")
+    loop = asyncio.get_running_loop()
+    user_is_admin = await loop.run_in_executor(None, is_user_admin, message.from_user.id)
+    logger.debug(f"User is_admin={user_is_admin}")
 
-
-async def handle_help(message: Message):
-    # Определяем, является ли пользователь администратором,
-    # проверяя запись в БД.
-    user_is_admin = is_user_admin_db(message.from_user.id)
-
-    # Получаем полный список команд с учетом прав пользователя.
-    commands = get_all_commands(user_is_admin=user_is_admin)
-    logger.debug(f"Все команды: {commands}")
-
-    # Определяем тип чата.
-    chat_type = "private_chat" if message.chat.type == "private" \
-        else "group_chat"
-
-    # Фильтруем команды по типу чата и по видимости в справке.
-    visible_commands = [
-        cmd["command"] for cmd in commands
-        if cmd.get(chat_type) and cmd.get("visible_in_help", True)
+    # Get and cache command definitions
+    all_defs = _cached_get_command_defs(user_is_admin=user_is_admin)
+    # Determine chat attribute name
+    scope_attr = "private_chat" if message.chat.type == "private" else "group_chat"
+    # Filter definitions
+    visible_defs = [
+        cmd for cmd in all_defs
+        if getattr(cmd, scope_attr) and cmd.visible_in_help
     ]
-    logger.debug(f"Доступные команды для {chat_type} "
-                 f"(admin={user_is_admin}): {visible_commands}")
-
-    if not visible_commands:
+    logger.debug(
+        f"Visible commands for {scope_attr} (admin={user_is_admin}): "
+        f"{[cmd.command for cmd in visible_defs]}"
+    )
+    if not visible_defs:
         await message.answer("Нет доступных команд для вашего чата.")
         return
-
-    # Формируем текст справки.
-    help_text = "Привет! Вот список доступных команд:\n\n"
-    for command in visible_commands:
-        help_text += f"/{command.command} — {command.description}\n"
-
+    # Build help text
+    lines = ["Привет! Вот список доступных команд:", ""]
+    for cmd in visible_defs:
+        lines.append(f"/{cmd.command} — {escape(cmd.description)}")
+    help_text = "\n".join(lines)
     await message.answer(help_text)
 
 
-def register_help_handler(dp):
+def register(dp: Dispatcher) -> None:
     """
-    Регистрирует обработчик команды /help.
-    :param dp: Экземпляр Dispatcher
+    Регистрирует обработчик /help через Router.
     """
-    dp.message.register(handle_help, Command(commands=["help"]))
+    dp.include_router(router)

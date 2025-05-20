@@ -239,7 +239,7 @@ LINKS = {
         ]
     },
     "Бот для расшифровки аббривеатур ВТБ": {
-        "key": "builder_bot",
+        "key": "acronym_bot",
         "url": "https://t.me/BankAcronymBot"
     }
 }

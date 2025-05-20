@@ -56,7 +56,7 @@ def build_bot_commands_for_scope(cmd_defs: List[CommandDef], scope_attr: str) ->
     Build BotCommand list for given scope attribute ('private_chat' or 'group_chat').
     """
     cmds = [
-        BotCommand(cmd.command, cmd.description)
+        BotCommand(command=cmd.command, description=cmd.description)
         for cmd in cmd_defs
         if getattr(cmd, scope_attr) and cmd.visible_in_help
     ]
@@ -64,14 +64,14 @@ def build_bot_commands_for_scope(cmd_defs: List[CommandDef], scope_attr: str) ->
     return cmds
 
 
-async def set_bot_commands(bot: Bot, user_is_admin: bool = False) -> None:
+async def set_bot_commands(tg_bot: Bot, user_is_admin: bool = False) -> None:
     """
     Set bot commands for private and group scopes based on definitions.
     """
     cmd_defs = get_all_command_defs(user_is_admin)
     # Private chats
     private_cmds = build_bot_commands_for_scope(cmd_defs, "private_chat")
-    await bot.set_my_commands(private_cmds, scope=BotCommandScopeDefault())
+    await tg_bot.set_my_commands(private_cmds, scope=BotCommandScopeDefault())
     # Group chats
     group_cmds = build_bot_commands_for_scope(cmd_defs, "group_chat")
-    await bot.set_my_commands(group_cmds, scope=BotCommandScopeAllGroupChats())
+    await tg_bot.set_my_commands(group_cmds, scope=BotCommandScopeAllGroupChats())

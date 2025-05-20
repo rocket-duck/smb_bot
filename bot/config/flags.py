@@ -19,3 +19,15 @@ GET_CHAT_LIST = True
 GET_EPA_GUIDE_ENABLE = True
 GET_EPA_CONTACTS_ENABLE = True
 VTB_SUPPORT_ENABLE = True
+
+# Fan triggers
+BOT_USERNAME = "smb_mbbiz_bot"
+TIMEOUT_MINUTES: int = 0
+FAN_TRIGGER_PROBABILITY: float = 0.6
+TRIGGER_PATTERNS = [
+    r"\bа кто\b",
+    r"\bа почему\b",
+    r"\bа когда\b",
+    r"\bа где\b",
+    r"\bа как\b"
+]
