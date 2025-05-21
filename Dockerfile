@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install -y \
       python3-dev \
     && pip install --no-cache-dir poetry \
     && poetry config virtualenvs.create false \
-    && PIP_NO_CACHE_DIR=1 poetry install --no-interaction --no-ansi --without dev \
+    && PIP_NO_CACHE_DIR=1 poetry install --no-interaction --no-ansi \
     && apt-get purge -y build-essential python3-dev \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/* /root/.cache/pypoetry /root/.cache/pip
