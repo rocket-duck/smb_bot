@@ -20,8 +20,10 @@ COPY pyproject.toml poetry.lock README.md Makefile ./
 # Копируем каталог с исходниками
 COPY bot/ ./bot/
 
-# Выполняем установку зависимостей через Makefile (Makefile должен использовать "poetry install")
-RUN make install
+# Install production dependencies without dev packages and clear cache to save space
+RUN poetry install --no-dev --no-interaction --no-ansi \
+    && rm -rf /root/.cache/pypoetry \
+    && rm -rf /root/.cache/pip
 
 # Копируем оставшиеся файлы проекта (если они есть)
 COPY . .
