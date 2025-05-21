@@ -1,10 +1,7 @@
-FROM python:3.13.3-slim
+FROM python:3.13.3-slim AS builder
 
 # Задаём рабочую директорию внутри контейнера
 WORKDIR /app
-
-# Создаём директории для данных и логов, которые будут примонтированы
-RUN mkdir -p /root/smb_bot/data && mkdir -p /root/smb_bot/logs
 
 # Копируем основные файлы проекта
 COPY pyproject.toml poetry.lock README.md Makefile ./
@@ -26,5 +23,14 @@ RUN apt-get update && apt-get install -y \
 # Копируем оставшиеся файлы проекта (если они есть)
 COPY . .
 
-# Определяем команду для запуска бота через Makefile
+FROM python:3.13.3-slim
+
+WORKDIR /app
+
+COPY --from=builder /usr/local/lib/python3.13 /usr/local/lib/python3.13
+COPY --from=builder /usr/local/bin /usr/local/bin
+COPY --from=builder /app /app
+
+RUN mkdir -p /root/smb_bot/data && mkdir -p /root/smb_bot/logs
+
 CMD ["make", "bot-run"]
