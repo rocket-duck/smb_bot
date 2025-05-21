@@ -27,6 +27,8 @@ FROM python:3.13.3-slim
 
 WORKDIR /app
 
+RUN apt-get update && apt-get install -y --no-install-recommends make && rm -rf /var/lib/apt/lists/*
+
 COPY --from=builder /usr/local/lib/python3.13 /usr/local/lib/python3.13
 COPY --from=builder /usr/local/bin /usr/local/bin
 COPY --from=builder /app /app
