@@ -20,10 +20,11 @@ COPY pyproject.toml poetry.lock README.md Makefile ./
 # Копируем каталог с исходниками
 COPY bot/ ./bot/
 
-# Install production dependencies without dev packages and clear cache to save space
-RUN poetry install --no-dev --no-interaction --no-ansi \
-    && rm -rf /root/.cache/pypoetry \
-    && rm -rf /root/.cache/pip
+# Configure Poetry to install into system and only main dependencies, then clear caches
+RUN poetry config virtualenvs.create false && \
+    poetry install --no-interaction --no-ansi --without dev && \
+    rm -rf /root/.cache/pypoetry && \
+    rm -rf /root/.cache/pip
 
 # Копируем оставшиеся файлы проекта (если они есть)
 COPY . .
