@@ -3,7 +3,7 @@ from pathlib import Path
 from aiogram.types import FSInputFile
 import logging
 
-from bot.config.flags import BOT_USERNAME
+from bot.config.tokens import BOT_USERNAME
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 IMG_DIR = BASE_DIR / "utils" / "img"

@@ -2,6 +2,7 @@ import pytest
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from bot.services.menu_service import create_menu
 from bot.config.links import LINKS
+import itertools
 
 @pytest.mark.parametrize("menu_key,expected_title", [
     (None, "Главное меню"),
@@ -16,7 +17,10 @@ def test_create_menu_titles(menu_key, expected_title):
 def test_create_menu_main_buttons_count():
     user_id = 12345
     keyboard, title = create_menu(None, user_id)
-    expected_count = len(LINKS)
+    # Expected: one button per unique category plus direct links for entries without a path
+    category_count = len({entry["path"][0] for entry in LINKS if entry.get("path")})
+    no_path_count = sum(1 for entry in LINKS if not entry.get("path"))
+    expected_count = category_count + no_path_count
     assert len(keyboard.inline_keyboard) == expected_count
     for row in keyboard.inline_keyboard:
         assert isinstance(row, list) and len(row) == 1
@@ -25,14 +29,22 @@ def test_create_menu_main_buttons_count():
         assert button.url or button.callback_data
 
 def test_create_menu_submenu_buttons_and_back():
-    parent_item = next((item for item in LINKS.values() if item.get("subsections")), None)
-    assert parent_item is not None, "No section with subsections found in LINKS"
-    parent_key = parent_item["key"]
+    # Pick a category slug from LINKS
+    slugs = {entry["id"].split(".", 1)[0] for entry in LINKS if entry.get("path")}
+    parent_key = next(iter(slugs))
+    # Determine display name for this category
+    display_name = next(
+        entry["path"][0] for entry in LINKS if entry["id"].split(".", 1)[0] == parent_key
+    )
     user_id = 12345
     keyboard, title = create_menu(parent_key, user_id)
-    subsections = parent_item["subsections"]
-    # submenu buttons count = number of subsections + back button
-    assert len(keyboard.inline_keyboard) == len(subsections) + 1
+    # Number of links in this category
+    count = sum(
+        1 for entry in LINKS if entry["id"].split(".", 1)[0] == parent_key
+    )
+    # submenu buttons count = number of links + back button
+    assert title == display_name
+    assert len(keyboard.inline_keyboard) == count + 1
     back_button = keyboard.inline_keyboard[-1][0]
     assert "Назад" in back_button.text
     assert back_button.callback_data.endswith(":main")

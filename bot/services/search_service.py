@@ -1,11 +1,18 @@
+import os
 import logging
 import asyncio
 import openai
+
 from bot.config.tokens import OPENAI_API_KEY
 from bot.config.gpt_prompt import PROMPT
 
+
+# Disable HuggingFace tokenizers parallelism warnings
+os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
+
 logger = logging.getLogger(__name__)
 openai.api_key = OPENAI_API_KEY
+
 
 async def ask_gpt(user_query: str) -> str:
     """

@@ -6,7 +6,8 @@ from aiogram import Router
 from aiogram.types import Message
 
 from bot.config.flags import BOT_TAG_ENABLE, WHO_REQUEST_ENABLE, MASLINA_ENABLE, FAN_TRIGGER_PROBABILITY
-from bot.messages.bot_tag import handle_bot_tag, BOT_USERNAME
+from bot.messages.bot_tag import handle_bot_tag
+from bot.config.tokens import BOT_USERNAME
 from bot.messages.who_request import handle_who_request
 from bot.messages.maslina import handle_maslina
 

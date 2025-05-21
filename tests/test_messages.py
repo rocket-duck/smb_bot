@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, patch, MagicMock
 from aiogram.types import Message, Chat, User
 from bot.messages.messages import handle_message
 from bot.services.message_service import message_service
-from bot.services.parse_message_service import parse_message_service
+from bot.services.message_parse_service import parse_message_service
 
 
 @pytest.fixture

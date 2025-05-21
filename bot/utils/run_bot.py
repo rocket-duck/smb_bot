@@ -12,10 +12,12 @@ import bot.services.menu_service as menu_module
 import bot.messages.messages as messages_module
 import bot.commands as commands_pkg
 
+
 async def register_handlers(dp: Dispatcher):
     # Динамическая регистрация обработчиков команд
     for _, module_name, _ in pkgutil.iter_modules(commands_pkg.__path__):
-        module = importlib.import_module(f"{commands_pkg.__name__}.{module_name}")
+        module = importlib.import_module(f"{commands_pkg.__name__}."
+                                         f"{module_name}")
         if hasattr(module, 'register'):
             module.register(dp)
 
@@ -45,7 +47,7 @@ async def run_bot():
     async with Bot(token=API_TOKEN) as tg_bot:
         dp = Dispatcher()
         try:
-           await tg_bot.get_me()
+            await tg_bot.get_me()
         except Exception as e:
             logging.error(f"Error while getting bot username: {e}")
             return
