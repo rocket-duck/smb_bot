@@ -1,6 +1,9 @@
 # Запуск бота
 docker compose up --build
 
+docker system df
+docker system prune -a --volumes -f
+docker builder prune --all -f
 
 ## Команды бота
 /add_chat - добавляет чат, в котором вызвана команда, в список для рассылок. Необходимо использовать только в чатах

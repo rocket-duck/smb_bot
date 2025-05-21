@@ -35,4 +35,4 @@ COPY --from=builder /app /app
 
 RUN mkdir -p /root/smb_bot/data && mkdir -p /root/smb_bot/logs
 
-CMD ["make", "bot-run"]
+CMD ["python3", "-m", "bot.main"]
