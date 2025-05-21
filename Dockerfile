@@ -1,8 +1,13 @@
 FROM python:3.13.3-slim
 
 # Устанавливаем необходимые утилиты и Poetry
-RUN apt-get update && apt-get install -y make curl && \
-    pip install --no-cache-dir poetry
+RUN apt-get update && apt-get install -y \
+      make \
+      curl \
+      build-essential \
+      python3-dev \
+    && pip install --no-cache-dir poetry \
+    && rm -rf /var/lib/apt/lists/*
 
 # Задаём рабочую директорию внутри контейнера
 WORKDIR /app
