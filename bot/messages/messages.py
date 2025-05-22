@@ -1,5 +1,4 @@
 from bot.config.flags import BOT_TAG_ENABLE
-from bot.config.tokens import ADMIN_USER_ID
 import logging
 from collections import deque
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
@@ -99,19 +98,9 @@ async def _handle_dislike(query: CallbackQuery):
         query.message.chat.id,
         query.message.message_id
     )
-    logger.info("ADMIN_USER_ID=%s (type %s), from_user.id=%s (type %s)",
-                ADMIN_USER_ID, type(ADMIN_USER_ID),
-                query.from_user.id, type(query.from_user.id))
-    user_id = query.from_user.id
-    # Compare as strings to avoid type mismatches
-    if str(user_id) == str(ADMIN_USER_ID):
-        # Admin: delete the bot's message
-        await query.bot.delete_message(chat_id=query.message.chat.id, message_id=query.message.message_id)
-        logger.info("Admin %s deleted message %s", user_id, query.message.message_id)
-    else:
-        # Other users: hide feedback buttons
-        await query.message.edit_reply_markup(reply_markup=None)
-        logger.info("User %s hid feedback buttons on message %s", user_id, query.message.message_id)
+    # Delete the bot's message on any dislike
+    await query.bot.delete_message(chat_id=query.message.chat.id, message_id=query.message.message_id)
+    logger.info("Deleted message %s on dislike", query.message.message_id)
     # Record dislike for last keyword and specific URL
     chat_id = query.message.chat.id
     hist = _HISTORY.get(chat_id)

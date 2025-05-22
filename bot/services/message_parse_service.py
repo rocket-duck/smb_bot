@@ -5,7 +5,6 @@ import pymorphy2
 import pickle
 import asyncio
 import numpy as np
-import os
 import importlib.resources as ilr
 import os
 try:

@@ -1,13 +1,10 @@
 import logging
 import asyncio
-from typing import List, Tuple, Optional
-from typing import List
-from aiogram.types import Message
+from typing import List, Tuple
 
 from aiogram.types import Message
 from bot.config.flags import TIMEOUT_RESPONSES_ENABLE, TIMEOUT_MINUTES
 from bot.services.recent_links_service import RecentLinksService
-from bot.messages.formatter import format_response
 
 logger = logging.getLogger(__name__)
 
