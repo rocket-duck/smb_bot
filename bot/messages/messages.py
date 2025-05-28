@@ -21,7 +21,7 @@ from bot.config.flags import (
 )
 
 # Настройка времени таймаута (в минутах)
-TIMEOUT_MINUTES: int = 0
+TIMEOUT_MINUTES: int = 30
 
 # Хранилище для предотвращения повторных ответов (по чатам)
 recent_links: dict = {}  # Формат: {chat_id: {"url": время последнего ответа}}
@@ -73,7 +73,7 @@ async def handle_message(message: Message, state: FSMContext) -> None:
     # Обработка дополнительных фановых триггеров
     await handle_bot_tag(message, BOT_USERNAME, BOT_TAG_ENABLE)
 
-    if random.random() < 0.2:
+    if random.random() < 0.3:
         await handle_who_request(message, WHO_REQUEST_ENABLE)
     else:
         logging.debug("Случайное условие не выполнено")

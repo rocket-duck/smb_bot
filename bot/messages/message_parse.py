@@ -2,8 +2,6 @@ import re
 import logging
 from bot.config.links import LINKS
 
-import numpy as np
-from sentence_transformers import SentenceTransformer
 from typing import List, Tuple
 
 def should_skip(keyword: str) -> bool:
@@ -18,9 +16,6 @@ def should_skip(keyword: str) -> bool:
     if re.search(r"\bработает\b", lower) and "как" not in lower:
         return True
     return False
-
-# Initialize semantic search model on CPU to avoid MPS tensors
-_semantic_model = SentenceTransformer('all-MiniLM-L6-v2', device='cpu')
 
 # Настройка логирования
 logging.basicConfig(level=logging.DEBUG)
@@ -38,17 +33,12 @@ def find_links_by_keyword(keyword):
         logging.debug(f"Пропускаем запрос на статус: {keyword}")
         return []
     logging.debug(f"Поиск по ключевому слову: {keyword}")
-    raw_results: List[Tuple[str, str, float]] = []
+    raw_results: List[Tuple[str, str]] = []
 
     # Запускаем рекурсивный поиск
     _recursive_search(LINKS, keyword, raw_results)
 
-    # Сортируем результаты по семантической схожести и фильтруем по порогу
-    sorted_results = sorted(raw_results, key=lambda x: x[2], reverse=True)
-    filtered = [(k, u) for k, u, s in sorted_results if s >= 0.6][:3]
-    if not filtered:
-        logging.debug("Совпадений не найдено.")
-    return filtered
+    return raw_results[:3]
 
 
 def _recursive_search(data, keyword, results, parent_name=""):
@@ -88,20 +78,18 @@ def _has_subsections(value):
     return isinstance(value, dict) and "subsections" in value
 
 
-def _process_section(key, value, keyword, raw_results):
+def _process_section(key, value, keyword, results):
     """
     Обрабатывает текущий раздел и
     проверяет совпадение с регулярными выражениями.
     :param key: Название раздела
     :param value: Данные раздела
     :param keyword: Ключевое слово для поиска
-    :param raw_results: Список результатов с семантической оценкой
+    :param results: Список результатов
     """
-    # сначала проверяем по регуляркам, затем семантически по названию раздела
-    if semantic_match(keyword, key):
-        sim_score = semantic_score(keyword, key)
-        logging.debug(f"Найдено совпадение: {key} ({sim_score:.2f}) -> {value['url']}")
-        raw_results.append((key, value["url"], sim_score))
+    if is_match(keyword, value.get("regex", [])):
+        logging.debug(f"Найдено совпадение: {key} -> {value['url']}")
+        results.append((key, value["url"]))
 
 
 def _build_section_name(parent_name, key):
@@ -123,29 +111,3 @@ def is_match(keyword, regex_list):
     :return: True, если есть совпадение; иначе False
     """
     return any(re.search(regex, keyword, re.IGNORECASE) for regex in regex_list)
-
-
-def semantic_score(query: str, text: str) -> float:
-    """
-    Возвращает семантическую схожесть (косинус) между запросом и текстом.
-    """
-    q_emb = _semantic_model.encode(query, convert_to_numpy=True)
-    t_emb = _semantic_model.encode(text, convert_to_numpy=True)
-    # Если тензоры, переместить на CPU и в numpy
-    if hasattr(q_emb, "cpu"):
-        q_emb = q_emb.cpu().numpy()
-    if hasattr(t_emb, "cpu"):
-        t_emb = t_emb.cpu().numpy()
-    sim = np.dot(q_emb, t_emb) / (np.linalg.norm(q_emb) * np.linalg.norm(t_emb))
-    return float(sim)
-
-
-def semantic_match(query: str, text: str, threshold: float = 0.7) -> bool:
-    """
-    Проверяет семантическое сходство между запросом и текстом.
-    :param query: Текст пользователя
-    :param text: Название раздела или описание
-    :param threshold: Порог сходства для срабатывания
-    :return: True, если сходство >= threshold
-    """
-    return semantic_score(query, text) >= threshold
