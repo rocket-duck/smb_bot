@@ -5,6 +5,7 @@ import random
 
 from aiogram.types import Message
 from aiogram.fsm.context import FSMContext
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 
 from bot.messages.message_parse import find_links_by_keyword
 from bot.messages.who_request import handle_who_request
@@ -21,10 +22,13 @@ from bot.config.flags import (
 )
 
 # Настройка времени таймаута (в минутах)
-TIMEOUT_MINUTES: int = 30
+TIMEOUT_MINUTES: int = 60
 
 # Хранилище для предотвращения повторных ответов (по чатам)
 recent_links: dict = {}  # Формат: {chat_id: {"url": время последнего ответа}}
+
+# Хранилище для подсчета лайков и дизлайков: {(chat_id, message_id): {"likes": int, "dislikes": int}}
+reaction_counts: dict = {}
 
 
 def should_process_text(text: str) -> bool:
@@ -120,13 +124,26 @@ async def process_results(message: Message, results: list) -> None:
     if filtered_results:
         response: str = format_response(filtered_results)
         logging.debug(f"Отправка ссылки: {response}")
-        await message.answer(response, reply_to_message_id=message.message_id)
+        # Кнопка лайк с начальным значением 0
+        like_button = InlineKeyboardButton(text="👍 0", callback_data="like_init")
+        # Кнопка дизлайк
+        dislike_button = InlineKeyboardButton(text="👎 0", callback_data="dislike_init")
+        keyboard = InlineKeyboardMarkup(inline_keyboard=[[like_button, dislike_button]], row_width=2)
+        sent = await message.answer(response, reply_to_message_id=message.message_id, reply_markup=keyboard)
+        # Инициализируем счётчики для отправленного сообщения
+        reaction_counts[(sent.chat.id, sent.message_id)] = {"likes": 0, "dislikes": 0}
+        # Обновляем callback_data, чтобы содержали реальные chat_id и message_id
+        new_like_data = f"like:{sent.chat.id}:{sent.message_id}"
+        new_dislike_data = f"dislike:{sent.chat.id}:{sent.message_id}"
+        like_button = InlineKeyboardButton(text="👍 0", callback_data=new_like_data)
+        dislike_button = InlineKeyboardButton(text="👎 0", callback_data=new_dislike_data)
+        keyboard = InlineKeyboardMarkup(inline_keyboard=[[like_button, dislike_button]], row_width=2)
+        await sent.edit_reply_markup(reply_markup=keyboard)
 
         # Планируем удаление ссылок из recent_links через таймаут
         if TIMEOUT_RESPONSES_ENABLE:
             for _, url in filtered_results:
-                asyncio.create_task(remove_link_after_timeout(message.chat.id,
-                                                              url))
+                asyncio.create_task(remove_link_after_timeout(message.chat.id, url))
     else:
         logging.debug("Все ссылки уже были отправлены недавно.")
 
@@ -168,6 +185,65 @@ async def remove_link_after_timeout(chat_id: int, url: str) -> None:
         logging.debug(f"Ссылка '{url}' удалена из кэша для чата {chat_id}.")
 
 
+async def handle_like_callback(callback_query: CallbackQuery) -> None:
+    """
+    Обработка нажатия на кнопку лайк.
+    """
+    data = callback_query.data  # формата "like:chat_id:message_id"
+    _, chat_id_str, message_id_str = data.split(":")
+    chat_id = int(chat_id_str)
+    message_id = int(message_id_str)
+    key = (chat_id, message_id)
+    if key not in reaction_counts:
+        await callback_query.answer()
+        return
+    # Увеличиваем счётчик лайков
+    reaction_counts[key]["likes"] += 1
+    likes = reaction_counts[key]["likes"]
+    dislikes = reaction_counts[key]["dislikes"]
+    # Получаем текущий объект сообщения
+    msg = callback_query.message
+    # Обновляем клавиатуру с новым значением лайков и дизлайков
+    like_button = InlineKeyboardButton(text=f"👍 {likes}", callback_data=f"like:{chat_id}:{message_id}")
+    dislike_button = InlineKeyboardButton(text=f"👎 {dislikes}", callback_data=f"dislike:{chat_id}:{message_id}")
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[[like_button, dislike_button]], row_width=2)
+    await msg.edit_reply_markup(reply_markup=keyboard)
+    await callback_query.answer("👍")
+
+
+async def handle_dislike_callback(callback_query: CallbackQuery) -> None:
+    """
+    Обработка нажатия на кнопку дизлайк.
+    """
+    data = callback_query.data  # формата "dislike:chat_id:message_id"
+    _, chat_id_str, message_id_str = data.split(":")
+    chat_id = int(chat_id_str)
+    message_id = int(message_id_str)
+    key = (chat_id, message_id)
+    if key not in reaction_counts:
+        await callback_query.answer()
+        return
+    # Увеличиваем счётчик дизлайков
+    reaction_counts[key]["dislikes"] += 1
+    dislikes = reaction_counts[key]["dislikes"]
+    likes = reaction_counts[key]["likes"]
+    msg = callback_query.message
+    # Если дизлайков стало больше, чем лайков — удаляем сообщение
+    if dislikes > likes:
+        await msg.delete()
+        # Удаляем записи из хранилищ
+        reaction_counts.pop(key, None)
+        recent_links.get(chat_id, {}).pop(msg.text, None)
+        await callback_query.answer("Сообщение удалено")
+    else:
+        # Обновляем клавиатуру с новыми значениями лайков и дизлайков
+        like_button = InlineKeyboardButton(text=f"👍 {likes}", callback_data=f"like:{chat_id}:{message_id}")
+        dislike_button = InlineKeyboardButton(text=f"👎 {dislikes}", callback_data=f"dislike:{chat_id}:{message_id}")
+        keyboard = InlineKeyboardMarkup(inline_keyboard=[[like_button, dislike_button]], row_width=2)
+        await msg.edit_reply_markup(reply_markup=keyboard)
+        await callback_query.answer("👎")
+
+
 async def no_fsm_filter(message: Message, state: FSMContext) -> bool:
     """
     Фильтр для обработки сообщений, только если
@@ -184,3 +260,5 @@ def register_message_handlers(dp) -> None:
     Регистрирует глобальный обработчик сообщений.
     """
     dp.message.register(handle_message, no_fsm_filter)
+    dp.callback_query.register(handle_like_callback, lambda c: c.data and c.data.startswith("like:"))
+    dp.callback_query.register(handle_dislike_callback, lambda c: c.data and c.data.startswith("dislike:"))
