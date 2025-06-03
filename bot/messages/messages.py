@@ -22,7 +22,7 @@ from bot.config.flags import (
 )
 
 # Настройка времени таймаута (в минутах)
-TIMEOUT_MINUTES: int = 60
+TIMEOUT_MINUTES: int = 30
 
 # Хранилище для предотвращения повторных ответов (по чатам)
 recent_links: dict = {}  # Формат: {chat_id: {"url": время последнего ответа}}
