@@ -1,8 +1,21 @@
 import re
 import logging
-from bot.config.links import LINKS
+from bot.dicts.links import LINKS
+from bot.dicts.errors import errors as ERROR_DEFS
 
 from typing import List, Tuple
+
+def parse_error_codes(text: str):
+    """
+    Ищет в тексте коды ошибок по списку ERROR_DEFS.
+    Возвращает список кортежей (код, описание) для найденных кодов.
+    """
+    results = []
+    for entry in ERROR_DEFS:
+        pattern = entry["regex"]
+        if re.search(pattern, text, re.IGNORECASE):
+            results.append((entry["code"], entry["description"]))
+    return results
 
 def should_skip(keyword: str) -> bool:
     """
@@ -28,12 +41,28 @@ def find_links_by_keyword(keyword):
     :return: Список кортежей (название, ссылка), соответствующих ключевому слову
     """
     keyword = keyword.strip().lower()
+
+    # Парсим возможные коды ошибок
+    error_matches = parse_error_codes(keyword)
+    if error_matches:
+        logging.debug(f"Найдены коды ошибок: {error_matches}")
+        return error_matches
+
     # Пропускаем прямые статусные вопросы
     if should_skip(keyword):
         logging.debug(f"Пропускаем запрос на статус: {keyword}")
         return []
     logging.debug(f"Поиск по ключевому слову: {keyword}")
     raw_results: List[Tuple[str, str]] = []
+
+    # Прямой поиск по ключам разделов с 'url' или 'bot'
+    for key, obj in LINKS.items():
+        if key.lower() in keyword:
+            if obj.get("url"):
+                raw_results.append((key, obj["url"]))
+            elif obj.get("bot"):
+                raw_results.append((key, obj["bot"]))
+            return raw_results
 
     # Запускаем рекурсивный поиск
     _recursive_search(LINKS, keyword, raw_results)

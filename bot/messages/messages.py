@@ -7,20 +7,13 @@ from aiogram.types import Message
 from aiogram.fsm.context import FSMContext
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 
-from bot.messages.message_parse import find_links_by_keyword
+import bot.config.flags as flag
+from bot.messages.message_parse import find_links_by_keyword, parse_error_codes
 from bot.messages.who_request import handle_who_request
 from bot.messages.bot_tag import handle_bot_tag
 from bot.utils.participants import update_participant
-from bot.messages.maslina import handle_maslina   # импортируем новый модуль
+from bot.messages.maslina import handle_maslina
 from bot.config.tokens import BOT_USERNAME
-from bot.config.flags import (
-    TIMEOUT_MINUTES,
-    KEYWORD_RESPONSES_ENABLE,
-    TIMEOUT_RESPONSES_ENABLE,
-    WHO_REQUEST_ENABLE,
-    BOT_TAG_ENABLE,
-    MASLINA_ENABLE
-)
 
 
 # Хранилище для предотвращения повторных ответов (по чатам)
@@ -44,7 +37,7 @@ def should_process_text(text: str) -> bool:
     if text.startswith("/"):
         logging.debug(f"Сообщение {text} игнорируется, так как это команда.")
         return False
-    if not KEYWORD_RESPONSES_ENABLE:
+    if not flag.KEYWORD_RESPONSES_ENABLE:
         logging.debug("Функция парсинга сообщений отключена")
         return False
     return True
@@ -74,14 +67,14 @@ async def handle_message(message: Message, state: FSMContext) -> None:
     update_participant(message)
 
     # Обработка дополнительных фановых триггеров
-    await handle_bot_tag(message, BOT_USERNAME, BOT_TAG_ENABLE)
+    await handle_bot_tag(message, BOT_USERNAME, flag.BOT_TAG_ENABLE)
 
-    if random.random() < 0.3:
-        await handle_who_request(message, WHO_REQUEST_ENABLE)
+    if random.random() < 0.5:
+        await handle_who_request(message, flag.WHO_REQUEST_ENABLE)
     else:
         logging.debug("Случайное условие не выполнено")
 
-    await handle_maslina(message, MASLINA_ENABLE)
+    await handle_maslina(message, flag.MASLINA_ENABLE)
 
     # Если текст не проходит фильтрацию, дальнейшая обработка не требуется
     if not should_process_text(text):
@@ -89,6 +82,13 @@ async def handle_message(message: Message, state: FSMContext) -> None:
 
     keyword: str = extract_keyword(message)
     if not keyword:
+        return
+
+    # Парсим коды ошибок и отправляем сообщения об ошибках, если найдены
+    error_matches = parse_error_codes(keyword)
+    if error_matches:
+        for code, description in error_matches:
+            await message.answer(f"Ошибка {code}: {description}")
         return
 
     results: list = find_links_by_keyword(keyword)
@@ -116,7 +116,7 @@ async def process_results(message: Message, results: list) -> None:
     """
     filtered_results = (
         filter_recent_links(message.chat.id, results)
-        if TIMEOUT_RESPONSES_ENABLE
+        if flag.TIMEOUT_RESPONSES_ENABLE
         else results
     )
 
@@ -140,7 +140,7 @@ async def process_results(message: Message, results: list) -> None:
         await sent.edit_reply_markup(reply_markup=keyboard)
 
         # Планируем удаление ссылок из recent_links через таймаут
-        if TIMEOUT_RESPONSES_ENABLE:
+        if flag.TIMEOUT_RESPONSES_ENABLE:
             for _, url in filtered_results:
                 asyncio.create_task(remove_link_after_timeout(message.chat.id, url))
     else:
@@ -156,7 +156,7 @@ def filter_recent_links(chat_id: int, results: list) -> list:
     for name, url in results:
         if (url in chat_recent_links
                 and datetime.now() - chat_recent_links[url]
-                < timedelta(minutes=TIMEOUT_MINUTES)):
+                < timedelta(minutes=flag.TIMEOUT_MINUTES)):
             logging.debug(f"Пропуск отправки ссылки '{url}' "
                           f"для чата {chat_id} (отправлялась недавно).")
         else:
@@ -177,7 +177,7 @@ async def remove_link_after_timeout(chat_id: int, url: str) -> None:
     """
     Удаляет ссылку из recent_links для конкретного чата через заданный таймаут.
     """
-    await asyncio.sleep(TIMEOUT_MINUTES * 60)
+    await asyncio.sleep(flag.TIMEOUT_MINUTES * 60)
     chat_recent_links = recent_links.get(chat_id, {})
     if url in chat_recent_links:
         del chat_recent_links[url]
