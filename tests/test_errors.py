@@ -1,6 +1,8 @@
 import re
 import pytest
-from bot.dicts.errors import errors
+from bot.messages.errors_parse import build_error_defs
+
+errors = build_error_defs(True)
 
 @pytest.mark.parametrize("code,variants,negatives", [
     # код, варианты, которые должны совпадать, и один «левый» пример

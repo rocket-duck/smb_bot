@@ -11,8 +11,8 @@ import bot.config.flags as flag
 from bot.messages.message_parse import find_links_by_keyword, parse_error_codes
 from bot.messages.who_request import handle_who_request
 from bot.messages.bot_tag import handle_bot_tag
-from bot.utils.participants import update_participant
 from bot.messages.maslina import handle_maslina
+from bot.utils.participants import update_participant
 from bot.config.tokens import BOT_USERNAME
 
 
@@ -85,13 +85,13 @@ async def handle_message(message: Message, state: FSMContext) -> None:
         return
 
     # Парсим коды ошибок и отправляем сообщения об ошибках, если найдены
-    error_matches = parse_error_codes(keyword)
+    error_matches = parse_error_codes(keyword, flag.ERRORS_PARSE_ENABLE)
     if error_matches:
         for code, description in error_matches:
             await message.answer(f"Ошибка {code}: {description}")
         return
 
-    results: list = find_links_by_keyword(keyword)
+    results: list = find_links_by_keyword(keyword, flag.ERRORS_PARSE_ENABLE)
     if results:
         await process_results(message, results)
     else:

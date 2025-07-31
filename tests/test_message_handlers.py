@@ -11,7 +11,7 @@ VALID_LINK_KEYS = [k for k, v in LINKS.items() if 'url' in v or 'bot' in v]
 # 1) Тестируем, что каждый код из raw_errors парсится:
 @pytest.mark.parametrize("code,description", raw_errors)
 def test_parse_error_codes_exact_match(code, description):
-    matches = parse_error_codes(code)
+    matches = parse_error_codes(code, True)
     assert (code, description) in matches, (
         f"Парсер должен найти {(code, description)}, "
         f"а нашёл {matches}"
@@ -20,7 +20,7 @@ def test_parse_error_codes_exact_match(code, description):
 # 2) Тестируем, что поиск по каждому ключевому слову из LINKS не даёт пустого списка:
 @pytest.mark.parametrize("keyword", VALID_LINK_KEYS)
 def test_find_links_by_keyword_returns_results(keyword):
-    results = find_links_by_keyword(keyword)
+    results = find_links_by_keyword(keyword, True)
     assert isinstance(results, list)
     assert results, f"По ключу '{keyword}' не найдено ни одной ссылки"
 

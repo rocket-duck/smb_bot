@@ -1,17 +1,19 @@
 import re
 import logging
 from bot.dicts.links import LINKS
-from bot.dicts.errors import errors as ERROR_DEFS
+from bot.messages.errors_parse import build_error_defs
 
 from typing import List, Tuple
 
-def parse_error_codes(text: str):
+def parse_error_codes(text: str, enabled: bool):
     """
     Ищет в тексте коды ошибок по списку ERROR_DEFS.
     Возвращает список кортежей (код, описание) для найденных кодов.
     """
+    if not enabled:
+        return []
     results = []
-    for entry in ERROR_DEFS:
+    for entry in build_error_defs(enabled):
         pattern = entry["regex"]
         if re.search(pattern, text, re.IGNORECASE):
             results.append((entry["code"], entry["description"]))
@@ -34,7 +36,7 @@ def should_skip(keyword: str) -> bool:
 logging.basicConfig(level=logging.DEBUG)
 
 
-def find_links_by_keyword(keyword):
+def find_links_by_keyword(keyword: str, enabled: bool):
     """
     Функция для поиска ссылок по ключевому слову в структуре LINKS.
     :param keyword: Ключевое слово для поиска
@@ -43,7 +45,7 @@ def find_links_by_keyword(keyword):
     keyword = keyword.strip().lower()
 
     # Парсим возможные коды ошибок
-    error_matches = parse_error_codes(keyword)
+    error_matches = parse_error_codes(keyword, enabled)
     if error_matches:
         logging.debug(f"Найдены коды ошибок: {error_matches}")
         return error_matches
