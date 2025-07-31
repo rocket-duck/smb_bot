@@ -57,9 +57,18 @@ def find_links_by_keyword(keyword: str, enabled: bool):
     logging.debug(f"Поиск по ключевому слову: {keyword}")
     raw_results: List[Tuple[str, str]] = []
 
-    # Прямой поиск по ключам разделов с 'url' или 'bot'
+    # Прямой поиск по ключам разделов
     for key, obj in LINKS.items():
         if key.lower() in keyword:
+            # Если у раздела есть подразделы — возвращаем их
+            if obj.get("subsections"):
+                for sub_key, sub_obj in obj["subsections"].items():
+                    if sub_obj.get("url"):
+                        raw_results.append((sub_key, sub_obj["url"]))
+                    elif sub_obj.get("bot"):
+                        raw_results.append((sub_key, sub_obj["bot"]))
+                return raw_results
+            # Иначе — обычная ссылка или бот
             if obj.get("url"):
                 raw_results.append((key, obj["url"]))
             elif obj.get("bot"):

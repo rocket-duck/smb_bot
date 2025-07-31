@@ -9,7 +9,8 @@ LINKS = {
                     r"\bдоступ на препрод\b",
                     r"\bдоступ на ПП\b",
                     r"\bмобайл ирон\b",
-                    r"\bпрепрод\b"
+                    r"\bпрепрод\b",
+                    r"\bмобайл айрон\b",
                 ]
             },
             "ЕКА, Трассировка, Аудит": {
@@ -60,7 +61,7 @@ LINKS = {
                 "key": "AZ_toggle_access",
                 "url": "https://sfera.inno.local/knowledge/pages?id=1424427"
             },
-            "Как получить доступ к тогглам АЗ": {
+            "Как получить доступ к тогглам ДАЗ": {
                 "key": "DAZ_toggle_access",
                 "url": "https://sfera.inno.local/knowledge/pages?id=1093862"
             }
@@ -208,24 +209,24 @@ LINKS = {
                 "key": "epa_3",
                 "url": "https://sfera.inno.local/knowledge/pages?id=1513112",
                 "regex": [
-                    r"\ЕПА\b",
-                    r"\авторизация\b"
+                    r"\bавторизация\b",
+                    r"\bепа\b"
                 ]
             },
             "Авторизация по новой цепочке (ЕПА-10)": {
                 "key": "epa_10",
                 "url": "https://sfera.inno.local/knowledge/pages?id=1513113",
                 "regex": [
-                    r"\ЕПА\b",
-                    r"\авторизация\b"
+                    r"\bавторизация\b",
+                    r"\bепа\b"
                 ]
             },
             "Контакты ЕПА": {
                 "key": "epa_contacts",
                 "url": "https://sfera.inno.local/knowledge/pages?id=1524162",
                 "regex": [
-                    r"\ЕПА\b",
-                    r"\авторизация\b"
+                    r"\bавторизация\b",
+                    r"\bепа\b"
                 ]
             },
         }
@@ -234,9 +235,9 @@ LINKS = {
         "key": "builder_bot",
         "url": "https://t.me/vtb_builder_bot",
         "regex": [
-            r"\взять сборку\b",
-            r"\получить сборку\b",
-            r"\брать сборку\b"
+            r"\bвзять сборку\b",
+            r"\bполучить сборку\b",
+            r"\bбрать сборку\b"
         ]
     },
     "Бот для расшифровки аббривеатур ВТБ": {

@@ -12,6 +12,7 @@ from bot.messages.message_parse import find_links_by_keyword, parse_error_codes
 from bot.messages.who_request import handle_who_request
 from bot.messages.bot_tag import handle_bot_tag
 from bot.messages.maslina import handle_maslina
+from bot.messages.help_epa_message import get_auth_issue_response
 from bot.utils.participants import update_participant
 from bot.config.tokens import BOT_USERNAME
 
@@ -75,6 +76,11 @@ async def handle_message(message: Message, state: FSMContext) -> None:
         logging.debug("Случайное условие не выполнено")
 
     await handle_maslina(message, flag.MASLINA_ENABLE)
+    # Проверка общих проблем авторизации
+    help_msg = get_auth_issue_response(text, flag.HELP_EPA_MESSAGE_ENABLE)
+    if help_msg:
+        await message.reply(help_msg)
+        return
 
     # Если текст не проходит фильтрацию, дальнейшая обработка не требуется
     if not should_process_text(text):
@@ -88,7 +94,7 @@ async def handle_message(message: Message, state: FSMContext) -> None:
     error_matches = parse_error_codes(keyword, flag.ERRORS_PARSE_ENABLE)
     if error_matches:
         for code, description in error_matches:
-            await message.answer(f"Ошибка {code}: {description}")
+            await message.reply(f"Ошибка {code}: {description}")
         return
 
     results: list = find_links_by_keyword(keyword, flag.ERRORS_PARSE_ENABLE)
