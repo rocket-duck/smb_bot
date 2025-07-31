@@ -2,7 +2,7 @@ import logging
 from aiogram.filters import Command
 from aiogram.types import Message
 from bot.config.flags import ADD_CHAT_ENABLE
-from bot.utils.chat_manager import add_chat, is_user_admin
+from bot.utils.chat_manager import add_chat
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -11,11 +11,6 @@ async def can_add_chat(message: Message) -> bool:
     if not ADD_CHAT_ENABLE:
         logging.debug("Команда /add_chat временно отключена.")
         return False
-
-    if not await is_user_admin(message):
-        logging.debug("Команда /add_chat доступна только администраторам чата.")
-        return False
-
     return True
 
 

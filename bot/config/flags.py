@@ -1,3 +1,5 @@
+TIMEOUT_MINUTES: int = 0
+
 # Ответ на ключевые слова
 KEYWORD_RESPONSES_ENABLE = True
 TIMEOUT_RESPONSES_ENABLE = True

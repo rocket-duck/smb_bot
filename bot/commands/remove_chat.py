@@ -2,7 +2,7 @@ import logging
 from aiogram.filters import Command
 from aiogram.types import Message
 from bot.config.flags import REMOVE_CHAT_ENABLE
-from bot.utils.chat_manager import remove_chat, is_user_admin
+from bot.utils.chat_manager import remove_chat
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -23,10 +23,6 @@ async def handle_remove_chat(message: Message) -> None:
         logging.debug("Команда /remove_chat временно отключена.")
         return
 
-    if not await is_user_admin(message):
-        logging.debug("Команда /remove_chat доступна только "
-                      "администраторам чата.")
-        return
 
     chat_id = message.chat.id
     removed_by = message.from_user.username or message.from_user.full_name

@@ -8,7 +8,7 @@ from aiogram.fsm.state import StatesGroup, State
 
 from bot.config.flags import ANNOUNCE_ENABLE
 from bot.database import SessionLocal
-from bot.models import Chat, AdminUser
+from bot.models import Chat
 
 logger = logging.getLogger(__name__)
 router = Router()
@@ -85,24 +85,6 @@ async def process_announce(message: types.Message,
 
 @router.message(Command("announce", prefix="/"))
 async def handle_announce(message: types.Message, state: FSMContext) -> None:
-    # Проверка прав: доступ только для администраторов
-    session = SessionLocal()
-    try:
-        admin_record = session.query(AdminUser).filter(
-            AdminUser.user_id == str(message.from_user.id),
-            AdminUser.is_active.is_(True)
-        ).first()
-    except Exception as e:
-        logger.error("Ошибка проверки прав администратора: %s", e)
-        admin_record = None
-    finally:
-        session.close()
-
-    if not admin_record:
-        await message.answer("У вас нет прав для использования команды.\n"
-                             "Запросить права вы можете командой /get_access")
-        return
-
     if not ANNOUNCE_ENABLE:
         await message.answer("Команда временно отключена.")
         return

@@ -14,6 +14,7 @@ from bot.utils.participants import update_participant
 from bot.messages.maslina import handle_maslina   # импортируем новый модуль
 from bot.config.tokens import BOT_USERNAME
 from bot.config.flags import (
+    TIMEOUT_MINUTES,
     KEYWORD_RESPONSES_ENABLE,
     TIMEOUT_RESPONSES_ENABLE,
     WHO_REQUEST_ENABLE,
@@ -21,8 +22,6 @@ from bot.config.flags import (
     MASLINA_ENABLE
 )
 
-# Настройка времени таймаута (в минутах)
-TIMEOUT_MINUTES: int = 30
 
 # Хранилище для предотвращения повторных ответов (по чатам)
 recent_links: dict = {}  # Формат: {chat_id: {"url": время последнего ответа}}

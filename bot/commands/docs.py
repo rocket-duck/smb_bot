@@ -41,7 +41,6 @@ async def handle_docs(message: Message, state: FSMContext) -> None:
         main_menu_text = "Вот какие ссылки я знаю.\nВыберите из меню ниже:"
         # Сохраняем текст главного меню в состоянии, если требуется для дальнейшей работы
         await state.update_data(main_menu_text=main_menu_text)
-
         await message.answer(main_menu_text, reply_markup=menu)
     except Exception as e:
         logger.error(f"Ошибка при обработке команды /docs для пользователя {user_id}: {e}")
