@@ -70,7 +70,7 @@ async def handle_message(message: Message, state: FSMContext) -> None:
     # Обработка дополнительных фановых триггеров
     await handle_bot_tag(message, BOT_USERNAME, flag.BOT_TAG_ENABLE)
 
-    if random.random() < 0.3:
+    if random.random() < 0.2:
         await handle_who_request(message, flag.WHO_REQUEST_ENABLE)
     else:
         logging.debug("Случайное условие не выполнено")
