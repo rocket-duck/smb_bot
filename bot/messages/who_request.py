@@ -1,4 +1,5 @@
 import logging
+import re
 from aiogram.types import Message, FSInputFile
 from pathlib import Path
 from bot.dicts import who_request_dict
@@ -24,9 +25,9 @@ async def handle_who_request(message: Message,
         logging.debug("Сообщение не содержит текста. Пропускаем обработку.")
         return
 
-    # Проверяем, содержит ли сообщение одну из триггерных фраз
+    # Проверяем, содержит ли сообщение одну из триггерных фраз как отдельное слово/фразу
     message_text = message.text.lower()
-    if not any(trigger in message_text for trigger in who_request_dict.TRIGGERS):
+    if not any(re.search(rf"\b{re.escape(trigger)}\b", message_text) for trigger in who_request_dict.TRIGGERS):
         return
 
     logging.debug(f"Обнаружен запрос '{message_text}' "
