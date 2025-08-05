@@ -1,5 +1,5 @@
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
-from bot.dicts.links import LINKS
+from bot.dicts.links_dict import LINKS
 import logging
 
 

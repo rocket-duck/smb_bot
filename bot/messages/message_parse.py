@@ -1,6 +1,6 @@
 import re
 import logging
-from bot.dicts.links import LINKS
+from bot.dicts.links_dict import LINKS
 from bot.messages.errors_parse import build_error_defs
 
 from typing import List, Tuple

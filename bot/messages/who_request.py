@@ -1,17 +1,11 @@
 import logging
 from aiogram.types import Message, FSInputFile
 from pathlib import Path
+from bot.dicts import who_request_dict
 
 # Путь к папке с изображениями
 BASE_DIR = Path(__file__).resolve().parent.parent
 IMG_DIR = BASE_DIR / "utils" / "img"
-
-# Триггерные фразы
-TRIGGERS = ["а кто",
-            "а почему",
-            "а когда",
-            "а где",
-            "а как"]
 
 
 async def handle_who_request(message: Message,
@@ -30,13 +24,13 @@ async def handle_who_request(message: Message,
         logging.debug("Сообщение не содержит текста. Пропускаем обработку.")
         return
 
-    # Проверяем, начинается ли сообщение с одной из триггерных фраз
+    # Проверяем, содержит ли сообщение одну из триггерных фраз
     message_text = message.text.lower()
-    if not any(message_text.startswith(trigger) for trigger in TRIGGERS):
+    if not any(trigger in message_text for trigger in who_request_dict.TRIGGERS):
         return
 
     logging.debug(f"Обнаружен запрос '{message_text}' "
-                  f"с одним из триггеров: {TRIGGERS}")
+                  f"с одним из триггеров: {who_request_dict.TRIGGERS}")
 
     # Путь к конкретному изображению
     image_path = IMG_DIR / "a_kto_cenz.png"

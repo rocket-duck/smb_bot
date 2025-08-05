@@ -1,5 +1,5 @@
 import re
-from bot.dicts.errors import raw_errors
+from bot.dicts.errors_dict import raw_errors
 
 def _build_code_pattern(code: str) -> str:
     """

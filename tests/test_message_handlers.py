@@ -2,8 +2,8 @@ import pytest
 
 from bot.messages.message_parse import parse_error_codes, find_links_by_keyword
 from bot.messages.messages import format_response
-from bot.dicts.errors import raw_errors
-from bot.dicts.links import LINKS
+from bot.dicts.errors_dict import raw_errors
+from bot.dicts.links_dict import LINKS
 
 # Только ключи из LINKS, у которых есть прямое поле 'url' или 'bot'
 VALID_LINK_KEYS = [k for k, v in LINKS.items() if 'url' in v or 'bot' in v]
