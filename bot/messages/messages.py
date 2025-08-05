@@ -70,10 +70,18 @@ async def handle_message(message: Message, state: FSMContext) -> None:
     # Обработка дополнительных фановых триггеров
     await handle_bot_tag(message, BOT_USERNAME, flag.BOT_TAG_ENABLE)
 
-    if random.random() < 0.15:
-        await handle_who_request(message, flag.WHO_REQUEST_ENABLE)
+    # Бросаем два кубика d20: бот и пользователь
+    if flag.WHO_REQUEST_ENABLE:
+        bot_roll = random.randint(1, 20)
+        user_roll = random.randint(1, 20)
+        logging.debug(f"Кубики who_request: пользователь={user_roll}, бот={bot_roll}")
+        # Если natural 20 или пользовательский >= бот, но не natural 1
+        if user_roll == 20 or (user_roll > 1 and user_roll >= bot_roll):
+            await handle_who_request(message, flag.WHO_REQUEST_ENABLE)
+        else:
+            logging.debug("Условие бросков кубиков не выполнено")
     else:
-        logging.debug("Случайное условие не выполнено")
+        logging.debug("Флаг WHO_REQUEST_ENABLE выключен, пропускаем who_request")
 
     await handle_maslina(message, flag.MASLINA_ENABLE)
     # Проверка общих проблем авторизации
