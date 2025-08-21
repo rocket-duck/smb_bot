@@ -124,7 +124,7 @@ async def process_results(message: Message, results: list) -> None:
     Обрабатывает результаты поиска ссылок.
     """
     filtered_results = (
-        filter_recent_links(message.chat.id, results)
+        await filter_recent_links(message.chat.id, results)
         if flag.TIMEOUT_RESPONSES_ENABLE
         else results
     )
@@ -136,7 +136,7 @@ async def process_results(message: Message, results: list) -> None:
         dislike_button = InlineKeyboardButton(text="👎 0", callback_data="dislike_init")
         keyboard = InlineKeyboardMarkup(inline_keyboard=[[like_button, dislike_button]], row_width=2)
         sent = await message.answer(response, reply_to_message_id=message.message_id, reply_markup=keyboard)
-        cache.init_reaction(sent.chat.id, sent.message_id, REACTION_TTL_SECONDS)
+        await cache.init_reaction(sent.chat.id, sent.message_id, REACTION_TTL_SECONDS)
         new_like_data = f"like:{sent.chat.id}:{sent.message_id}"
         new_dislike_data = f"dislike:{sent.chat.id}:{sent.message_id}"
         like_button = InlineKeyboardButton(text="👍 0", callback_data=new_like_data)
@@ -147,19 +147,19 @@ async def process_results(message: Message, results: list) -> None:
         logging.debug("Все ссылки уже были отправлены недавно.")
 
 
-def filter_recent_links(chat_id: int, results: list) -> list:
+async def filter_recent_links(chat_id: int, results: list) -> list:
     """
     Фильтрует ссылки, которые уже были отправлены недавно для конкретного чата.
     """
     filtered_results = []
     for name, url in results:
-        if cache.is_recent_link(chat_id, url):
+        if await cache.is_recent_link(chat_id, url):
             logging.debug(
                 f"Пропуск отправки ссылки '{url}' для чата {chat_id} (отправлялась недавно)."
             )
         else:
             filtered_results.append((name, url))
-            cache.set_recent_link(chat_id, url, flag.TIMEOUT_MINUTES * 60)
+            await cache.set_recent_link(chat_id, url, flag.TIMEOUT_MINUTES * 60)
     return filtered_results
 
 
@@ -179,10 +179,12 @@ async def handle_like_callback(callback_query: CallbackQuery) -> None:
     _, chat_id_str, message_id_str = data.split(":")
     chat_id = int(chat_id_str)
     message_id = int(message_id_str)
-    if not cache.get_reaction(chat_id, message_id):
+    if not await cache.get_reaction(chat_id, message_id):
         await callback_query.answer()
         return
-    likes, dislikes = cache.increment_reaction(chat_id, message_id, "like", REACTION_TTL_SECONDS)
+    likes, dislikes = await cache.increment_reaction(
+        chat_id, message_id, "like", REACTION_TTL_SECONDS
+    )
     msg = callback_query.message
     like_button = InlineKeyboardButton(text=f"👍 {likes}", callback_data=f"like:{chat_id}:{message_id}")
     dislike_button = InlineKeyboardButton(text=f"👎 {dislikes}", callback_data=f"dislike:{chat_id}:{message_id}")
@@ -199,14 +201,16 @@ async def handle_dislike_callback(callback_query: CallbackQuery) -> None:
     _, chat_id_str, message_id_str = data.split(":")
     chat_id = int(chat_id_str)
     message_id = int(message_id_str)
-    if not cache.get_reaction(chat_id, message_id):
+    if not await cache.get_reaction(chat_id, message_id):
         await callback_query.answer()
         return
-    likes, dislikes = cache.increment_reaction(chat_id, message_id, "dislike", REACTION_TTL_SECONDS)
+    likes, dislikes = await cache.increment_reaction(
+        chat_id, message_id, "dislike", REACTION_TTL_SECONDS
+    )
     msg = callback_query.message
     if dislikes > likes:
         await msg.delete()
-        cache.remove_reaction(chat_id, message_id)
+        await cache.remove_reaction(chat_id, message_id)
         await callback_query.answer("Сообщение удалено")
     else:
         like_button = InlineKeyboardButton(text=f"👍 {likes}", callback_data=f"like:{chat_id}:{message_id}")
