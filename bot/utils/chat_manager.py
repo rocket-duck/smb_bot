@@ -1,4 +1,3 @@
-import asyncio
 import logging
 from datetime import datetime
 
@@ -114,20 +113,4 @@ async def get_all_chats_async():
             logger.error(f"Ошибка при получении списка чатов: {e}")
             return []
 
-
-# ---------------------------------------------------------------------------
-# Synchronous wrappers for tests and other synchronous use-cases
-# ---------------------------------------------------------------------------
-
-
-def add_chat(chat_id: int, chat_title: str, added_by: str) -> None:
-    asyncio.run(add_chat_async(chat_id, chat_title, added_by))
-
-
-def remove_chat(chat_id: int, removed_by: str) -> bool:
-    return asyncio.run(remove_chat_async(chat_id, removed_by))
-
-
-def get_all_chats():
-    return asyncio.run(get_all_chats_async())
 
