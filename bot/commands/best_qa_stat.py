@@ -5,8 +5,9 @@ from bot.config.flags import BEST_QA_STAT_ENABLE
 from bot.database import SessionLocal
 from bot.models import WinnerStats
 from bot.utils.game_engine import format_declension
+from bot.config.logging import setup_logging
 
-logging.basicConfig(level=logging.DEBUG)
+setup_logging()
 
 
 def get_stats(chat_id: str) -> list:

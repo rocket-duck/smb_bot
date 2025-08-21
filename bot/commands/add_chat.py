@@ -3,8 +3,9 @@ from aiogram.filters import Command
 from aiogram.types import Message
 from bot.config.flags import ADD_CHAT_ENABLE
 from bot.utils.chat_manager import add_chat
+from bot.config.logging import setup_logging
 
-logging.basicConfig(level=logging.DEBUG)
+setup_logging()
 
 
 async def can_add_chat(message: Message) -> bool:
@@ -28,7 +29,7 @@ async def handle_add_chat(message: Message) -> None:
     added_by = message.from_user.username or message.from_user.full_name
 
     try:
-        add_chat(chat_id, chat_title, added_by)
+        await add_chat(chat_id, chat_title, added_by)
     except Exception as e:
         logging.error(f"Ошибка при добавлении чата: {e}")
 
