@@ -5,13 +5,14 @@ from bot.config.tokens import API_TOKEN
 from bot.database import init_db
 from bot.utils.handlers import register_handlers
 from bot.modules.commands_list import set_bot_commands
+from bot.config.logging import setup_logging
 
 
 async def run_bot():
     """
     Главная функция для запуска бота.
     """
-    logging.basicConfig(level=logging.DEBUG)
+    setup_logging()
 
     # Инициализация базы данных
     init_db()
