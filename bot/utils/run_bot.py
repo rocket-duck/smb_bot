@@ -14,7 +14,7 @@ async def run_bot():
     logging.basicConfig(level=logging.DEBUG)
 
     # Инициализация базы данных
-    init_db()
+    await init_db()
 
     # Инициализация бота и диспетчера
     bot = Bot(token=API_TOKEN)

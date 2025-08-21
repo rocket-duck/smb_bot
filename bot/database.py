@@ -1,17 +1,22 @@
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, declarative_base
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    async_sessionmaker,
+    create_async_engine,
+)
+from sqlalchemy.orm import declarative_base
 
 
 # Здесь мы используем SQLite и сохраняем базу в файле data/bot.db
-DATABASE_URL = "sqlite:///data/bot.db"
+DATABASE_URL = "sqlite+aiosqlite:///data/bot.db"
 
-engine = create_engine(
+engine: AsyncEngine = create_async_engine(
     DATABASE_URL, connect_args={"check_same_thread": False}
 )
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+SessionLocal = async_sessionmaker(bind=engine, expire_on_commit=False)
 Base = declarative_base()
 
 
-def init_db():
+async def init_db():
     # Импортируем модели, чтобы они были зарегистрированы в Base.metadata
-    Base.metadata.create_all(bind=engine)
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
