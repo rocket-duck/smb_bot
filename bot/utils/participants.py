@@ -35,6 +35,7 @@ async def update_participant(message) -> None:
                     full_name=user.full_name,
                     username=user.username or "",
                     chat_title=message.chat.title or "",
+                    last_active=datetime.utcnow(),
                 )
                 session.add(participant)
                 await session.commit()

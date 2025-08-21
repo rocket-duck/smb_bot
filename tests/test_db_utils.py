@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from sqlalchemy import select
 
 from bot.models import Chat, LastWinner, WinnerStats, Participant
-from bot.utils import chat_manager, game_engine
+from bot.utils import chat_manager, game_engine, participants
 from bot.database import Base
 
 
@@ -18,6 +18,7 @@ async def session_local(monkeypatch):
         await conn.run_sync(Base.metadata.create_all)
     monkeypatch.setattr(chat_manager, "SessionLocal", TestingSessionLocal)
     monkeypatch.setattr(game_engine, "SessionLocal", TestingSessionLocal)
+    monkeypatch.setattr(participants, "SessionLocal", TestingSessionLocal)
     yield TestingSessionLocal
     await engine.dispose()
 
@@ -94,4 +95,26 @@ async def test_game_engine_updates_and_random(session_local):
         last.last_datetime = last.last_datetime - timedelta(days=1)
         await db.commit()
     assert await game_engine.is_new_day("1") is True
+
+
+@pytest.mark.asyncio
+async def test_update_participant_sets_last_active(session_local):
+    from types import SimpleNamespace
+
+    message = SimpleNamespace(
+        chat=SimpleNamespace(type="group", id=1, title="Test Chat"),
+        from_user=SimpleNamespace(id=123, full_name="User", username="user"),
+    )
+
+    await participants.update_participant(message)
+
+    async with session_local() as db:
+        result = await db.execute(
+            select(Participant).filter(
+                Participant.chat_id == "1", Participant.user_id == "123"
+            )
+        )
+        participant = result.scalars().first()
+        assert participant is not None
+        assert participant.last_active is not None
 
