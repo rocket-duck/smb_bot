@@ -35,6 +35,7 @@ class Participant(Base):
     full_name = Column(String, nullable=False)
     username = Column(String, nullable=True)
     chat_title = Column(String, nullable=True)
+    last_active = Column(DateTime, nullable=True, index=True)
 
 
 class Chat(Base):
