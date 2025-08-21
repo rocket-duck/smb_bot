@@ -24,7 +24,6 @@ async def handle_remove_chat(message: Message) -> None:
         logging.debug("Команда /remove_chat временно отключена.")
         return
 
-
     chat_id = message.chat.id
     removed_by = message.from_user.username or message.from_user.full_name
 

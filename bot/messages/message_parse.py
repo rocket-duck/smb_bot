@@ -6,6 +6,7 @@ from bot.config.logging import setup_logging
 
 from typing import List, Tuple
 
+
 def parse_error_codes(text: str, enabled: bool):
     """
     Ищет в тексте коды ошибок по списку ERROR_DEFS.
@@ -20,6 +21,7 @@ def parse_error_codes(text: str, enabled: bool):
             results.append((entry["code"], entry["description"]))
     return results
 
+
 def should_skip(keyword: str) -> bool:
     """
     Определяет, нужно ли пропустить выдачу ссылок для статусных или негативных вопросов.
@@ -32,6 +34,7 @@ def should_skip(keyword: str) -> bool:
     if re.search(r"\bработает\b", lower) and "как" not in lower:
         return True
     return False
+
 
 # Настройка логирования
 setup_logging()
