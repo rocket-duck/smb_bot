@@ -1,0 +1,9 @@
+import os
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+os.environ.setdefault("BOT_USERNAME", "dummy_username")
+os.environ.setdefault("API_TOKEN", "dummy_token")
+os.environ.setdefault("OPENAI_API_KEY", "dummy_openai")
