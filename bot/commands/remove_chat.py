@@ -3,8 +3,9 @@ from aiogram.filters import Command
 from aiogram.types import Message
 from bot.config.flags import REMOVE_CHAT_ENABLE
 from bot.utils.chat_manager import remove_chat
+from bot.config.logging import setup_logging
 
-logging.basicConfig(level=logging.DEBUG)
+setup_logging()
 
 
 async def handle_remove_chat(message: Message) -> None:

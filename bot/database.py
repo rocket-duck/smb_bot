@@ -18,5 +18,7 @@ Base = declarative_base()
 
 async def init_db():
     # Импортируем модели, чтобы они были зарегистрированы в Base.metadata
+    from bot import models  # noqa: F401
+
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)

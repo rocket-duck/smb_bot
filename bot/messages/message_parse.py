@@ -2,6 +2,7 @@ import re
 import logging
 from bot.dicts.links_dict import LINKS
 from bot.messages.errors_parse import build_error_defs
+from bot.config.logging import setup_logging
 
 from typing import List, Tuple
 
@@ -33,7 +34,7 @@ def should_skip(keyword: str) -> bool:
     return False
 
 # Настройка логирования
-logging.basicConfig(level=logging.DEBUG)
+setup_logging()
 
 
 def find_links_by_keyword(keyword: str, enabled: bool):
