@@ -93,6 +93,7 @@ async def test_handle_best_qa(monkeypatch):
         best_qa, "get_random_participant", fake_get_random_participant
     )
     flags = {"lw": False, "ws": False}
+
     async def fake_update_last_winner(*a, **k):
         flags["lw"] = True
 

@@ -34,4 +34,3 @@ async def test_reaction_counts():
     await asyncio.sleep(0.1)
     assert await cache.get_reaction(1, 43) is None
     await cache.close()
-

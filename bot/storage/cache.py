@@ -151,4 +151,3 @@ class AsyncTTLCache:
 
 # Default cache instance used throughout the project
 cache = AsyncTTLCache()
-

@@ -34,8 +34,6 @@ def should_skip(keyword: str) -> bool:
     return False
 
 
-
-
 def find_links_by_keyword(keyword: str, enabled: bool):
     """
     Функция для поиска ссылок по ключевому слову в структуре LINKS.

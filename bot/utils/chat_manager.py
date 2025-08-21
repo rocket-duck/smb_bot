@@ -112,5 +112,3 @@ async def get_all_chats_async():
         except Exception as e:
             logger.error(f"Ошибка при получении списка чатов: {e}")
             return []
-
-
