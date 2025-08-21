@@ -8,6 +8,7 @@ from bot.dicts.links_dict import LINKS
 # Только ключи из LINKS, у которых есть прямое поле 'url' или 'bot'
 VALID_LINK_KEYS = [k for k, v in LINKS.items() if 'url' in v or 'bot' in v]
 
+
 # 1) Тестируем, что каждый код из raw_errors парсится:
 @pytest.mark.parametrize("code,description", raw_errors)
 def test_parse_error_codes_exact_match(code, description):
@@ -18,6 +19,8 @@ def test_parse_error_codes_exact_match(code, description):
     )
 
 # 2) Тестируем, что поиск по каждому ключевому слову из LINKS не даёт пустого списка:
+
+
 @pytest.mark.parametrize("keyword", VALID_LINK_KEYS)
 def test_find_links_by_keyword_returns_results(keyword):
     results = find_links_by_keyword(keyword, True)
@@ -25,6 +28,8 @@ def test_find_links_by_keyword_returns_results(keyword):
     assert results, f"По ключу '{keyword}' не найдено ни одной ссылки"
 
 # 3) Проверяем, что форматирование ответа включает все переданные пары:
+
+
 def test_format_response_structure():
     sample = [("First", "http://example.com/1"), ("Second", "http://ex.com/2")]
     resp = format_response(sample)

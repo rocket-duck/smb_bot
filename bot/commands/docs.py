@@ -7,6 +7,7 @@ from aiogram.fsm.context import FSMContext
 
 logger = logging.getLogger(__name__)
 
+
 async def handle_docs(message: Message, state: FSMContext) -> None:
     """
     Обрабатывает команду /docs.
@@ -45,6 +46,7 @@ async def handle_docs(message: Message, state: FSMContext) -> None:
     except Exception as e:
         logger.error(f"Ошибка при обработке команды /docs для пользователя {user_id}: {e}")
         await message.reply(f"Произошла ошибка: {e}")
+
 
 def register_docs_handler(dp) -> None:
     """

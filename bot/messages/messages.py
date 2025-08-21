@@ -169,6 +169,8 @@ def format_response(results: list) -> str:
     """
     return ("Возможно это поможет разобраться:\n"
             + "\n".join([f"{name}: {url}" for name, url in results]))
+
+
 async def handle_like_callback(callback_query: CallbackQuery) -> None:
     """
     Обработка нажатия на кнопку лайк.

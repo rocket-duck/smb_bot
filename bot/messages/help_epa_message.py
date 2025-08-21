@@ -25,6 +25,7 @@ _AUTH_ISSUE_PATTERNS = [
 ]
 _AUTH_ISSUE_REGEX = re.compile(r"(?:{})".format("|".join(_AUTH_ISSUE_PATTERNS)), flags=re.IGNORECASE)
 
+
 def get_auth_issue_response(text: str, enabled: bool) -> str | None:
     """
     If enabled and the message text matches known authorization issue patterns,

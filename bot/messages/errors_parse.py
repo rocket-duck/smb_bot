@@ -1,6 +1,7 @@
 import re
 from bot.dicts.errors_dict import raw_errors
 
+
 def _build_code_pattern(code: str) -> str:
     """
     Build a regex pattern for the given error code,
@@ -38,11 +39,11 @@ def build_error_defs(enabled: bool):
                 rest_pattern_full = _build_code_pattern(rest)
                 alternatives.append(rest_pattern_full)
                 # If rest has a leading letter, also allow digits-only
-                if rest and rest[0] in ("B","В","b","в","C","С","c","с","A","А","a","а","V","v"):
+                if rest and rest[0] in ("B", "В", "b", "в", "C", "С", "c", "с", "A", "А", "a", "а", "V", "v"):
                     digits = rest[1:]
                     alternatives.append(re.escape(digits))
             # Handle codes that start with a letter: allow without the letter
-            elif code and code[0] in ("B","В","b","в","C","С","c","с","A","А","a","а","V","v"):
+            elif code and code[0] in ("B", "В", "b", "в", "C", "С", "c", "с", "A", "А", "a", "а", "V", "v"):
                 rest = code[1:]
                 rest_pattern_full = _build_code_pattern(rest)
                 alternatives.append(rest_pattern_full)

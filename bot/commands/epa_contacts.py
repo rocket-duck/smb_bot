@@ -4,6 +4,7 @@ from bot.config.flags import GET_EPA_CONTACTS_ENABLE
 
 router = Router()
 
+
 @router.message(Command("epa_contacts", prefix="/"))
 async def handle_epa_contacts(message: types.Message) -> None:
     if not GET_EPA_CONTACTS_ENABLE:
@@ -14,6 +15,7 @@ async def handle_epa_contacts(message: types.Message) -> None:
         "Контакты ЕПА для связи: https://sfera.inno.local/knowledge/pages?id=1524162"
     )
     await message.answer(text)
+
 
 def register_epa_contacts_handler(dp) -> None:
     dp.message.register(handle_epa_contacts, Command(commands=["epa_contacts"]))
