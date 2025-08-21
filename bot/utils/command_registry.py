@@ -1,0 +1,53 @@
+import logging
+from typing import Any, Callable, Dict, List, Optional
+
+from aiogram import Router
+from aiogram.filters import Command
+from aiogram.types import Message
+
+from .admins import is_user_admin_db
+
+COMMAND_REGISTRY: List[Dict[str, Any]] = []
+
+
+def command(
+    name: str,
+    flag: bool = True,
+    *,
+    admin_only: bool = False,
+    router: Optional[Router] = None,
+) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+    """Декоратор для регистрации команд.
+
+    Args:
+        name: Имя команды без слеша.
+        flag: Флаг доступности команды.
+        admin_only: Требуются ли права администратора.
+        router: Опциональный Router для регистрации обработчика.
+    """
+
+    def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
+        async def wrapper(message: Message, *args, **kwargs):
+            if not flag:
+                logging.debug("Команда /%s временно отключена.", name)
+                return
+            if admin_only and not await is_user_admin_db(message.from_user.id):
+                await message.answer(
+                    "У вас нет прав для использования этой команды.\n"
+                    "Запросить права вы можете командой /get_access"
+                )
+                return
+            return await func(message, *args, **kwargs)
+
+        if router:
+            router.message.register(wrapper, Command(commands=[name]))
+        COMMAND_REGISTRY.append(
+            {
+                "name": name,
+                "handler": wrapper,
+                "router": router,
+            }
+        )
+        return wrapper
+
+    return decorator

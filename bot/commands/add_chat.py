@@ -1,25 +1,17 @@
 import logging
-from aiogram.filters import Command
 from aiogram.types import Message
+
 from bot.config.flags import ADD_CHAT_ENABLE
 from bot.utils.chat_manager import add_chat_async
+from bot.utils.command_registry import command
 
 
-async def can_add_chat(message: Message) -> bool:
-    if not ADD_CHAT_ENABLE:
-        logging.debug("Команда /add_chat временно отключена.")
-        return False
-    return True
-
-
+@command("add_chat", flag=ADD_CHAT_ENABLE)
 async def handle_add_chat(message: Message) -> None:
     try:
         await message.delete()
     except Exception as e:
-        logging.error(f"Не удалось удалить сообщение пользователя: {e}")
-
-    if not await can_add_chat(message):
-        return
+        logging.error("Не удалось удалить сообщение пользователя: %s", e)
 
     chat_id = message.chat.id
     chat_title = message.chat.title or "Личный чат"
@@ -28,9 +20,4 @@ async def handle_add_chat(message: Message) -> None:
     try:
         await add_chat_async(chat_id, chat_title, added_by)
     except Exception as e:
-        logging.error(f"Ошибка при добавлении чата: {e}")
-
-
-def register_add_chat_handler(dp) -> None:
-    dp.message.register(handle_add_chat,
-                        Command(commands=["add_chat"]))
+        logging.error("Ошибка при добавлении чата: %s", e)
