@@ -1,5 +1,5 @@
-from sqlalchemy import Column, Integer, String, DateTime, Boolean, func
 from bot.database import Base
+from sqlalchemy import Boolean, Column, DateTime, Integer, String, func
 
 
 class LastWinner(Base):

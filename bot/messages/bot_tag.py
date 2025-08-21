@@ -1,5 +1,6 @@
-from aiogram import types
 from pathlib import Path
+
+from aiogram import types
 from aiogram.types import FSInputFile
 
 BASE_DIR = Path(__file__).resolve().parent.parent

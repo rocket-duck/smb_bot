@@ -1,9 +1,10 @@
 import logging
+
 from aiogram import Router, types
 from aiogram.filters import Command
-from bot.utils.chat_manager import get_all_chats
 from bot.database import SessionLocal
 from bot.models import AdminUser
+from bot.utils.chat_manager import get_all_chats
 
 logger = logging.getLogger(__name__)
 router = Router()

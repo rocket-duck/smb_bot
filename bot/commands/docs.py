@@ -1,9 +1,10 @@
-from aiogram.filters import Command
-from aiogram.types import Message
-from bot.modules.menu import create_menu
-from bot.config.flags import DOCS_ENABLE
 import logging
+
+from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
+from aiogram.types import Message
+from bot.config.flags import DOCS_ENABLE
+from bot.modules.menu import create_menu
 
 logger = logging.getLogger(__name__)
 

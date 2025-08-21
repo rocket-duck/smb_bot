@@ -2,12 +2,12 @@ from aiogram.filters import Command
 from aiogram.types import Message
 from bot.config.flags import BEST_QA_ENABLE
 from bot.utils.game_engine import (
-    update_last_winner,
-    update_winner_stats,
+    format_winner_mention,
+    get_last_winner,
     get_random_participant,
     is_new_day,
-    format_winner_mention,
-    get_last_winner
+    update_last_winner,
+    update_winner_stats,
 )
 
 

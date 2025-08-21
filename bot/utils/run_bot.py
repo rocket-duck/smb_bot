@@ -1,10 +1,11 @@
-import logging
 import asyncio
+import logging
+
 from aiogram import Bot, Dispatcher
 from bot.config.tokens import API_TOKEN
 from bot.database import init_db
-from bot.utils.handlers import register_handlers
 from bot.modules.commands_list import set_bot_commands
+from bot.utils.handlers import register_handlers
 
 
 async def run_bot():

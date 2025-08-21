@@ -4,11 +4,10 @@ from typing import Tuple
 
 from aiogram import Router, types
 from aiogram.filters import Command
-from bot.database import SessionLocal
-from bot.models import AdminUser
 from bot.config.flags import GET_ACCESS_ENABLE
 from bot.config.tokens import ADMIN_USER_ID
-
+from bot.database import SessionLocal
+from bot.models import AdminUser
 
 logger = logging.getLogger(__name__)
 router = Router()

@@ -1,11 +1,10 @@
 import logging
-from typing import Optional, Tuple, Dict, Any
+from typing import Any, Dict, Optional, Tuple
 
 from aiogram import Router, types
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import StatesGroup, State
-
+from aiogram.fsm.state import State, StatesGroup
 from bot.config.flags import ANNOUNCE_ENABLE
 from bot.database import SessionLocal
 from bot.models import Chat

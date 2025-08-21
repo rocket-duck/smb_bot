@@ -1,21 +1,23 @@
 import asyncio
 import logging
-from datetime import datetime, timedelta
 import random
-
-from aiogram.types import Message
-from aiogram.fsm.context import FSMContext
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
+from datetime import datetime, timedelta
 
 import bot.config.flags as flag
+from aiogram.fsm.context import FSMContext
+from aiogram.types import (
+    CallbackQuery,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    Message,
+)
+from bot.config.tokens import BOT_USERNAME
+from bot.messages.bot_tag import handle_bot_tag
+from bot.messages.help_epa_message import get_auth_issue_response
+from bot.messages.maslina import handle_maslina
 from bot.messages.message_parse import find_links_by_keyword, parse_error_codes
 from bot.messages.who_request import handle_who_request
-from bot.messages.bot_tag import handle_bot_tag
-from bot.messages.maslina import handle_maslina
-from bot.messages.help_epa_message import get_auth_issue_response
 from bot.utils.participants import update_participant
-from bot.config.tokens import BOT_USERNAME
-
 
 # Хранилище для предотвращения повторных ответов (по чатам)
 recent_links: dict = {}  # Формат: {chat_id: {"url": время последнего ответа}}

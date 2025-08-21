@@ -1,8 +1,8 @@
-from typing import List, Dict, Any
+from typing import Any, Dict, List
+
 from aiogram import Bot
 from aiogram.types import BotCommand
 from bot.config import flags
-
 
 # Декларативное описание команд
 COMMAND_DEFINITIONS: List[Dict[str, Any]] = [
@@ -170,8 +170,10 @@ def get_commands_for_scope(commands: List[Dict[str, Any]],
 
 async def set_bot_commands(bot: Bot, user_is_admin: bool = False) -> None:
     commands = get_all_commands(user_is_admin=user_is_admin)
-    from aiogram.types import (BotCommandScopeDefault,
-                               BotCommandScopeAllGroupChats)
+    from aiogram.types import (
+        BotCommandScopeAllGroupChats,
+        BotCommandScopeDefault,
+    )
     private_commands = get_commands_for_scope(commands,
                                               "private_chat")
     await bot.set_my_commands(private_commands,

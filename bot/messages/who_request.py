@@ -1,7 +1,8 @@
 import logging
 import re
-from aiogram.types import Message, FSInputFile
 from pathlib import Path
+
+from aiogram.types import FSInputFile, Message
 from bot.dicts import who_request_dict
 
 # Путь к папке с изображениями

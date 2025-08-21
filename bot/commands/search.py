@@ -1,15 +1,14 @@
 import asyncio
 import logging
-import openai
 from typing import Optional
 
+import openai
 from aiogram import Router, types
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import StatesGroup, State
-
-from bot.config.tokens import OPENAI_API_KEY
+from aiogram.fsm.state import State, StatesGroup
 from bot.config.gpt_prompt import PROMPT
+from bot.config.tokens import OPENAI_API_KEY
 
 # Настройка логирования
 logging.basicConfig(

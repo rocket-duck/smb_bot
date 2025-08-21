@@ -1,6 +1,7 @@
+import logging
+
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from bot.dicts.links_dict import LINKS
-import logging
 
 
 def create_main_menu(user_id: int):

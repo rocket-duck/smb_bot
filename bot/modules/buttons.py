@@ -1,8 +1,9 @@
-from typing import Tuple, Optional
-from aiogram.types import CallbackQuery
-from aiogram.fsm.context import FSMContext
-from bot.modules.menu import create_menu
 import logging
+from typing import Optional, Tuple
+
+from aiogram.fsm.context import FSMContext
+from aiogram.types import CallbackQuery
+from bot.modules.menu import create_menu
 
 logger = logging.getLogger(__name__)
 

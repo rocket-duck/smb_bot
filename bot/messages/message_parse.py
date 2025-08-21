@@ -1,9 +1,10 @@
-import re
 import logging
+import re
+from typing import List, Tuple
+
 from bot.dicts.links_dict import LINKS
 from bot.messages.errors_parse import build_error_defs
 
-from typing import List, Tuple
 
 def parse_error_codes(text: str, enabled: bool):
     """

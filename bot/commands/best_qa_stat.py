@@ -1,4 +1,5 @@
 import logging
+
 from aiogram.filters import Command
 from aiogram.types import Message
 from bot.config.flags import BEST_QA_STAT_ENABLE
