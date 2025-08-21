@@ -3,8 +3,9 @@ from aiogram.filters import Command
 from aiogram.types import Message
 from bot.config.flags import ADD_CHAT_ENABLE
 from bot.utils.chat_manager import add_chat
+from bot.config.logging import setup_logging
 
-logging.basicConfig(level=logging.DEBUG)
+setup_logging()
 
 
 async def can_add_chat(message: Message) -> bool:
