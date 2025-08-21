@@ -3,7 +3,7 @@ from aiogram import Router, types
 from aiogram.filters import Command
 from sqlalchemy import select
 
-from bot.utils.chat_manager import get_all_chats
+from bot.utils.chat_manager import get_all_chats_async
 from bot.database import SessionLocal
 from bot.models import AdminUser
 
@@ -33,7 +33,7 @@ async def handle_chat_list(message: types.Message) -> None:
         return
 
     # Получаем список чатов
-    chats = await get_all_chats()
+    chats = await get_all_chats_async()
     if not chats:
         await message.answer("Список чатов пуст.")
         return
