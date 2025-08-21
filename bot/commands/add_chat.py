@@ -29,7 +29,7 @@ async def handle_add_chat(message: Message) -> None:
     added_by = message.from_user.username or message.from_user.full_name
 
     try:
-        add_chat(chat_id, chat_title, added_by)
+        await add_chat(chat_id, chat_title, added_by)
     except Exception as e:
         logging.error(f"Ошибка при добавлении чата: {e}")
 

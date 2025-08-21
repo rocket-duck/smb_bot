@@ -15,7 +15,7 @@ async def run_bot():
     setup_logging()
 
     # Инициализация базы данных
-    init_db()
+    await init_db()
 
     # Инициализация бота и диспетчера
     bot = Bot(token=API_TOKEN)

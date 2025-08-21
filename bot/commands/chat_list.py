@@ -1,6 +1,8 @@
 import logging
 from aiogram import Router, types
 from aiogram.filters import Command
+from sqlalchemy import select
+
 from bot.utils.chat_manager import get_all_chats
 from bot.database import SessionLocal
 from bot.models import AdminUser
@@ -12,17 +14,18 @@ router = Router()
 @router.message(Command("chat_list", prefix="/"))
 async def handle_chat_list(message: types.Message) -> None:
     # Проверяем, есть ли активная запись для пользователя в таблице admin_users
-    session = SessionLocal()
-    try:
-        admin_record = session.query(AdminUser).filter(
-            AdminUser.user_id == str(message.from_user.id),
-            AdminUser.is_active.is_(True)
-        ).first()
-    except Exception as e:
-        logger.error("Ошибка проверки прав администратора: %s", e)
-        admin_record = None
-    finally:
-        session.close()
+    async with SessionLocal() as session:
+        try:
+            result = await session.execute(
+                select(AdminUser).filter(
+                    AdminUser.user_id == str(message.from_user.id),
+                    AdminUser.is_active.is_(True),
+                )
+            )
+            admin_record = result.scalars().first()
+        except Exception as e:
+            logger.error("Ошибка проверки прав администратора: %s", e)
+            admin_record = None
 
     if not admin_record:
         await message.answer("У вас нет прав для использования этой команды.\n"
@@ -30,7 +33,7 @@ async def handle_chat_list(message: types.Message) -> None:
         return
 
     # Получаем список чатов
-    chats = get_all_chats()
+    chats = await get_all_chats()
     if not chats:
         await message.answer("Список чатов пуст.")
         return

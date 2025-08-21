@@ -28,7 +28,7 @@ async def handle_remove_chat(message: Message) -> None:
     chat_id = message.chat.id
     removed_by = message.from_user.username or message.from_user.full_name
 
-    if remove_chat(chat_id, removed_by):
+    if await remove_chat(chat_id, removed_by):
         logging.info(f"Чат {chat_id} успешно помечен как удалённый.")
     else:
         logging.debug(f"Чат {chat_id} не найден или уже удалён.")
