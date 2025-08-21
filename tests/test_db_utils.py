@@ -117,4 +117,3 @@ async def test_update_participant_sets_last_active(session_local):
         participant = result.scalars().first()
         assert participant is not None
         assert participant.last_active is not None
-

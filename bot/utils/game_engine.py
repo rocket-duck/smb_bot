@@ -126,4 +126,3 @@ def format_declension(wins: int) -> str:
 def format_winner_mention(user_id: str, full_name: str) -> str:
     """Формирует строку для упоминания пользователя."""
     return hlink(full_name, f"tg://user?id={user_id}")
-

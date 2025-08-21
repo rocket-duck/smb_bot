@@ -34,7 +34,7 @@ async def handle_help(message: Message):
         return
 
     help_text = "Привет! Вот список доступных команд:\n\n"
-    for command in visible_commands:
-        help_text += f"/{command.command} — {command.description}\n"
+    for cmd in visible_commands:
+        help_text += f"/{cmd.command} — {cmd.description}\n"
 
     await message.answer(help_text)

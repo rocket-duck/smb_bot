@@ -53,4 +53,3 @@ async def update_participant(message) -> None:
         except Exception as e:
             await session.rollback()
             logging.error(f"Ошибка при обновлении участника: {e}")
-
