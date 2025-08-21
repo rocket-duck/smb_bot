@@ -14,4 +14,5 @@ Base = declarative_base()
 
 def init_db():
     # Импортируем модели, чтобы они были зарегистрированы в Base.metadata
+    from bot import models  # noqa: F401
     Base.metadata.create_all(bind=engine)
