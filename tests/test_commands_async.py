@@ -17,7 +17,7 @@ async def test_process_immediate_query(monkeypatch):
     async def fake_query_openai(user_query, message):
         return "result"
 
-    def fake_log_search_request_db(message, user_query):
+    async def fake_log_search_request_db(message, user_query):
         pass
 
     monkeypatch.setattr(search, "query_openai", fake_query_openai)
@@ -42,24 +42,29 @@ async def test_handle_best_qa(monkeypatch):
         answer=AsyncMock()
     )
 
-    monkeypatch.setattr(best_qa, "is_new_day", lambda chat_id: True)
+    async def fake_is_new_day(chat_id):
+        return True
+
+    monkeypatch.setattr(best_qa, "is_new_day", fake_is_new_day)
     participant = SimpleNamespace(
         user_id="1", full_name="User", username="user"
     )
+
+    async def fake_get_random_participant(chat_id):
+        return participant
+
     monkeypatch.setattr(
-        best_qa, "get_random_participant", lambda chat_id: participant
+        best_qa, "get_random_participant", fake_get_random_participant
     )
     flags = {"lw": False, "ws": False}
-    monkeypatch.setattr(
-        best_qa,
-        "update_last_winner",
-        lambda *a, **k: flags.__setitem__("lw", True),
-    )
-    monkeypatch.setattr(
-        best_qa,
-        "update_winner_stats",
-        lambda *a, **k: flags.__setitem__("ws", True),
-    )
+    async def fake_update_last_winner(*a, **k):
+        flags["lw"] = True
+
+    async def fake_update_winner_stats(*a, **k):
+        flags["ws"] = True
+
+    monkeypatch.setattr(best_qa, "update_last_winner", fake_update_last_winner)
+    monkeypatch.setattr(best_qa, "update_winner_stats", fake_update_winner_stats)
     monkeypatch.setattr(
         best_qa,
         "format_winner_mention",

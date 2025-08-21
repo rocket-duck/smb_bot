@@ -8,6 +8,7 @@ from bot.database import SessionLocal
 from bot.models import AdminUser
 from bot.config.flags import GET_ACCESS_ENABLE
 from bot.config.tokens import ADMIN_USER_ID
+from sqlalchemy import select
 
 
 logger = logging.getLogger(__name__)
@@ -15,18 +16,19 @@ router = Router()
 
 
 async def access_already_granted(message: types.Message):
-    session = SessionLocal()
-    try:
-        record = session.query(AdminUser).filter(
-            AdminUser.user_id == str(message.from_user.id),
-            AdminUser.is_active.is_(True)
-        ).first()
-        return record is not None
-    except Exception as e:
-        logger.error("Ошибка проверки доступа: %s", e)
-        return False
-    finally:
-        session.close()
+    async with SessionLocal() as session:
+        try:
+            result = await session.execute(
+                select(AdminUser).filter(
+                    AdminUser.user_id == str(message.from_user.id),
+                    AdminUser.is_active.is_(True),
+                )
+            )
+            record = result.scalars().first()
+            return record is not None
+        except Exception as e:
+            logger.error("Ошибка проверки доступа: %s", e)
+            return False
 
 
 def prepare_admin_request(message: types.Message) \
@@ -81,40 +83,38 @@ async def handle_get_access(message: types.Message) -> None:
                              "администратору. Попробуйте позже.")
 
 
-async def handle_accept_callback(callback: types.CallbackQuery,
-                                 user_id_str: str,
-                                 target_user_id: int) \
-        -> None:
-    session = SessionLocal()
-    try:
-        admin_record = session.query(AdminUser).filter(
-            AdminUser.user_id == user_id_str
-        ).first()
-        if not admin_record:
-            admin_record = AdminUser(
-                user_id=user_id_str,
-                full_name=callback.from_user.full_name,
-                username=callback.from_user.username or "",
-                added_at=datetime.utcnow(),
-                is_active=True
+async def handle_accept_callback(
+    callback: types.CallbackQuery, user_id_str: str, target_user_id: int
+) -> None:
+    async with SessionLocal() as session:
+        try:
+            result = await session.execute(
+                select(AdminUser).filter(AdminUser.user_id == user_id_str)
             )
-            session.add(admin_record)
-            session.commit()
-        else:
-            if not admin_record.is_active:
-                admin_record.is_active = True
-                admin_record.added_at = datetime.utcnow()
-                session.commit()
-        await callback.message.edit_reply_markup(reply_markup=None)
-        await callback.bot.send_message(chat_id=target_user_id,
-                                        text="Доступ предоставлен")
-        await callback.answer("Доступ предоставлен.")
-    except Exception as e:
-        session.rollback()
-        logger.error("Ошибка обработки accept callback: %s", e)
-        await callback.answer("Произошла ошибка. Попробуйте позже.")
-    finally:
-        session.close()
+            admin_record = result.scalars().first()
+            if not admin_record:
+                admin_record = AdminUser(
+                    user_id=user_id_str,
+                    full_name=callback.from_user.full_name,
+                    username=callback.from_user.username or "",
+                    added_at=datetime.utcnow(),
+                    is_active=True,
+                )
+                session.add(admin_record)
+            else:
+                if not admin_record.is_active:
+                    admin_record.is_active = True
+                    admin_record.added_at = datetime.utcnow()
+            await session.commit()
+            await callback.message.edit_reply_markup(reply_markup=None)
+            await callback.bot.send_message(
+                chat_id=target_user_id, text="Доступ предоставлен"
+            )
+            await callback.answer("Доступ предоставлен.")
+        except Exception as e:
+            await session.rollback()
+            logger.error("Ошибка обработки accept callback: %s", e)
+            await callback.answer("Произошла ошибка. Попробуйте позже.")
 
 
 async def handle_decline_callback(callback: types.CallbackQuery,
