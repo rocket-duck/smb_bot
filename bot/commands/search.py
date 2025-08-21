@@ -10,10 +10,7 @@ from aiogram.fsm.state import StatesGroup, State
 
 from bot.config.tokens import OPENAI_API_KEY
 from bot.config.gpt_prompt import PROMPT
-from bot.config.logging import setup_logging
 from bot.database import SessionLocal
-
-setup_logging()
 
 openai.api_key = OPENAI_API_KEY
 router = Router()
