@@ -60,7 +60,7 @@ async def handle_message(message: Message, state: FSMContext) -> None:
     text: str = message.text.strip()
 
     # Обновляем или добавляем участника в БД на основе сообщения
-    update_participant(message)
+    await update_participant(message)
 
     # Обработка дополнительных фановых триггеров
     await handle_bot_tag(message, BOT_USERNAME, flag.BOT_TAG_ENABLE)

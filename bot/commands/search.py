@@ -11,6 +11,7 @@ from aiogram.fsm.state import StatesGroup, State
 from bot.config.tokens import OPENAI_API_KEY
 from bot.config.gpt_prompt import PROMPT
 from bot.config.logging import setup_logging
+from bot.database import SessionLocal
 
 setup_logging()
 
@@ -74,7 +75,7 @@ async def process_immediate_query(user_query: str,
     Записывает запрос в базу, отправляет сообщение "Обрабатываю ваш запрос...",
     вызывает ChatGPT и отправляет результат в чат.
     """
-    log_search_request_db(message, user_query)
+    await log_search_request_db(message, user_query)
     await message.answer("Обрабатываю ваш запрос...")
     answer: str = await query_openai(user_query, message)
     await message.answer(answer)
@@ -138,28 +139,25 @@ async def process_search_query(message: types.Message,
     await process_immediate_query(user_query, message, state)
 
 
-def log_search_request_db(message: types.Message, user_query: str) -> None:
-    """
-    Логирует запрос пользователя в базу данных (таблица search_logs).
-    """
-    from bot.database import SessionLocal
+async def log_search_request_db(message: types.Message, user_query: str) -> None:
+    """Логирует запрос пользователя в базу данных (таблица search_logs)."""
     from bot.models import SearchLog
-    session = SessionLocal()
-    try:
-        log_entry = SearchLog(
-            user_id=str(message.from_user.id),
-            username=message.from_user.username or "",
-            full_name=message.from_user.full_name,
-            query=user_query,
-            timestamp=message.date  # или можно использовать datetime.utcnow()
-        )
-        session.add(log_entry)
-        session.commit()
-    except Exception as e:
-        session.rollback()
-        logging.error("Ошибка при записи лога запроса в базу данных: %s", e)
-    finally:
-        session.close()
+    async with SessionLocal() as session:
+        try:
+            log_entry = SearchLog(
+                user_id=str(message.from_user.id),
+                username=message.from_user.username or "",
+                full_name=message.from_user.full_name,
+                query=user_query,
+                timestamp=message.date,  # или можно использовать datetime.utcnow()
+            )
+            session.add(log_entry)
+            await session.commit()
+        except Exception as e:
+            await session.rollback()
+            logging.error(
+                "Ошибка при записи лога запроса в базу данных: %s", e
+            )
 
 
 async def query_openai(user_query: str, message: types.Message) -> str:

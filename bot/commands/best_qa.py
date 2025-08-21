@@ -21,8 +21,8 @@ async def handle_best_qa(message: Message) -> None:
 
     chat_id = str(message.chat.id)
     # Если уже выбран победитель сегодня, уведомляем об этом
-    if not is_new_day(chat_id):
-        last = get_last_winner(chat_id)
+    if not await is_new_day(chat_id):
+        last = await get_last_winner(chat_id)
         if last:
             mention = format_winner_mention(last.winner_user_id,
                                             last.winner_full_name)
@@ -31,19 +31,19 @@ async def handle_best_qa(message: Message) -> None:
                                  parse_mode="HTML")
         return
 
-    participant = get_random_participant(chat_id)
+    participant = await get_random_participant(chat_id)
     if not participant:
         await message.answer("Не нашёл участников для выбора.")
         return
 
-    update_last_winner(
+    await update_last_winner(
         chat_id,
         message.chat.title or "Личный чат",
         str(participant.user_id),
         participant.full_name,
         participant.username
     )
-    update_winner_stats(
+    await update_winner_stats(
         chat_id,
         message.chat.title or "Личный чат",
         str(participant.user_id),

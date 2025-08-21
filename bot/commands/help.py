@@ -4,33 +4,35 @@ from aiogram.types import Message
 from bot.modules.commands_list import get_all_commands
 from bot.database import SessionLocal
 from bot.models import AdminUser
+from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
 
 
-def is_user_admin_db(user_id: int) -> bool:
+async def is_user_admin_db(user_id: int) -> bool:
     """
     Проверяет, является ли пользователь администратором,
     запрашивая наличие активной записи в таблице admin_users.
     """
-    session = SessionLocal()
-    try:
-        admin_record = session.query(AdminUser).filter(
-            AdminUser.user_id == str(user_id),
-            AdminUser.is_active.is_(True)
-        ).first()
-        return admin_record is not None
-    except Exception as e:
-        logger.error("Ошибка проверки админа в БД: %s", e)
-        return False
-    finally:
-        session.close()
+    async with SessionLocal() as session:
+        try:
+            result = await session.execute(
+                select(AdminUser).filter(
+                    AdminUser.user_id == str(user_id),
+                    AdminUser.is_active.is_(True),
+                )
+            )
+            admin_record = result.scalars().first()
+            return admin_record is not None
+        except Exception as e:
+            logger.error("Ошибка проверки админа в БД: %s", e)
+            return False
 
 
 async def handle_help(message: Message):
     # Определяем, является ли пользователь администратором,
     # проверяя запись в БД.
-    user_is_admin = is_user_admin_db(message.from_user.id)
+    user_is_admin = await is_user_admin_db(message.from_user.id)
 
     # Получаем полный список команд с учетом прав пользователя.
     commands = get_all_commands(user_is_admin=user_is_admin)

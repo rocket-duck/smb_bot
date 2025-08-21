@@ -9,6 +9,7 @@ from aiogram.fsm.state import StatesGroup, State
 from bot.config.flags import ANNOUNCE_ENABLE
 from bot.database import SessionLocal
 from bot.models import Chat
+from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
 router = Router()
@@ -56,17 +57,20 @@ async def send_announce_to_chat(chat: Dict[str, Any],
                        f"{chat['id']} ({chat['title']}): {e}")
 
 
-async def process_announce(message: types.Message,
-                           announce_message: Optional[str],
-                           reply_to_message: Optional[types.Message]) -> None:
-    session = SessionLocal()
-    try:
-        chat_list_db = session.query(Chat).filter(Chat.deleted.is_(False)).all()
-    except Exception as e:
-        logger.error("Ошибка получения списка чатов: %s", e)
-        chat_list_db = []
-    finally:
-        session.close()
+async def process_announce(
+    message: types.Message,
+    announce_message: Optional[str],
+    reply_to_message: Optional[types.Message],
+) -> None:
+    async with SessionLocal() as session:
+        try:
+            result = await session.execute(
+                select(Chat).filter(Chat.deleted.is_(False))
+            )
+            chat_list_db = result.scalars().all()
+        except Exception as e:
+            logger.error("Ошибка получения списка чатов: %s", e)
+            chat_list_db = []
 
     if not chat_list_db:
         await message.answer("Нет активных чатов для отправки.")
