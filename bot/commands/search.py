@@ -6,6 +6,7 @@ import openai
 from aiogram import Router, types
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
+from sqlalchemy import insert
 
 from bot.config.flags import SEARCH_ENABLE
 from bot.config.gpt_prompt import PROMPT
@@ -62,6 +63,7 @@ async def cmd_search(message: types.Message, state: FSMContext) -> None:
 
 async def process_immediate_query(user_query: str, message: types.Message, state: FSMContext) -> None:
     """Обрабатывает запрос, который можно выполнить сразу."""
+    # Сохраняем запрос в базе данных
     await log_search_request_db(message, user_query)
     await message.answer("Обрабатываю ваш запрос...")
     answer: str = await query_openai(user_query, message)
@@ -128,14 +130,14 @@ async def log_search_request_db(message: types.Message, user_query: str) -> None
 
     async with SessionLocal() as session:
         try:
-            log_entry = SearchLog(
+            stmt = insert(SearchLog).values(
                 user_id=str(message.from_user.id),
                 username=message.from_user.username or "",
                 full_name=message.from_user.full_name,
                 query=user_query,
                 timestamp=message.date,
             )
-            session.add(log_entry)
+            await session.execute(stmt)
             await session.commit()
         except Exception as e:
             await session.rollback()
