@@ -6,9 +6,6 @@ from bot.database import SessionLocal
 from bot.models import WinnerStats
 from sqlalchemy import select
 from bot.utils.game_engine import format_declension
-from bot.config.logging import setup_logging
-
-setup_logging()
 
 
 async def get_stats(chat_id: str) -> list:
