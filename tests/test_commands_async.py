@@ -1,8 +1,27 @@
 import pytest
+import pytest_asyncio
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
+from datetime import datetime
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 
 from bot.commands import search, best_qa
+from bot.database import Base
+from bot.models import SearchLog
+
+
+@pytest_asyncio.fixture
+async def search_session_local(monkeypatch):
+    engine = create_async_engine(
+        "sqlite+aiosqlite:///:memory:", connect_args={"check_same_thread": False}
+    )
+    TestingSessionLocal = async_sessionmaker(bind=engine, expire_on_commit=False)
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    monkeypatch.setattr(search, "SessionLocal", TestingSessionLocal)
+    yield TestingSessionLocal
+    await engine.dispose()
 
 
 @pytest.mark.asyncio
@@ -33,6 +52,23 @@ async def test_process_immediate_query(monkeypatch):
     )
     assert message.answer.await_args_list[1].args[0] == "result"
     state.clear.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_log_search_request_db(search_session_local):
+    message = SimpleNamespace(
+        from_user=SimpleNamespace(id=1, username="user", full_name="User"),
+        date=datetime.now(),
+    )
+
+    await search.log_search_request_db(message, "hello")
+
+    async with search_session_local() as session:
+        result = await session.execute(select(SearchLog))
+        log = result.scalars().first()
+        assert log is not None
+        assert log.user_id == "1"
+        assert log.query == "hello"
 
 
 @pytest.mark.asyncio
