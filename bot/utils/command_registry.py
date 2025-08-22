@@ -37,6 +37,11 @@ def command(
                     "Запросить права вы можете командой /get_access"
                 )
                 return
+            # aiogram v3 передает объект dispatcher среди аргументов обработчика,
+            # но большинство наших команд его не ожидают. Чтобы избежать ошибки
+            # вида "unexpected keyword argument 'dispatcher'", удаляем его из
+            # kwargs перед вызовом пользовательской функции.
+            kwargs.pop("dispatcher", None)
             return await func(message, *args, **kwargs)
 
         if router:
