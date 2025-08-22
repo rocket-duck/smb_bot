@@ -1,3 +1,4 @@
+import inspect
 import logging
 from typing import Any, Callable, Dict, List, Optional
 
@@ -37,6 +38,17 @@ def command(
                     "Запросить права вы можете командой /get_access"
                 )
                 return
+            # aiogram v3 может передавать служебные параметры в kwargs,
+            # которые не предусмотрены нашим обработчиком. Чтобы избежать
+            # ошибок вида "unexpected keyword argument", фильтруем лишние
+            # ключи на основе сигнатуры функции.
+            if kwargs:
+                sig = inspect.signature(func)
+                if not any(
+                    p.kind == inspect.Parameter.VAR_KEYWORD
+                    for p in sig.parameters.values()
+                ):
+                    kwargs = {k: v for k, v in kwargs.items() if k in sig.parameters}
             return await func(message, *args, **kwargs)
 
         if router:

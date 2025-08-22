@@ -92,3 +92,22 @@ def test_command_router_registration():
     command_registry.COMMAND_REGISTRY[:] = command_registry.COMMAND_REGISTRY[
         :start_len
     ]
+
+
+@pytest.mark.asyncio
+async def test_command_ignores_extra_kwargs():
+    command_registry.COMMAND_REGISTRY.clear()
+    called = {"value": False}
+
+    async def handler(message):
+        called["value"] = True
+
+    message = SimpleNamespace(
+        from_user=SimpleNamespace(id=1), answer=AsyncMock()
+    )
+    decorated = command_registry.command("test")(handler)
+
+    # Обработчик должен отработать даже при передаче дополнительных
+    # параметров, которые игнорируются декоратором.
+    await decorated(message, dispatcher=object(), bots=object())
+    assert called["value"] is True
