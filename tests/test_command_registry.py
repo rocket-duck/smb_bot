@@ -111,3 +111,21 @@ async def test_command_ignores_extra_kwargs():
     # параметров, которые игнорируются декоратором.
     await decorated(message, dispatcher=object(), bots=object())
     assert called["value"] is True
+
+
+@pytest.mark.asyncio
+async def test_command_removes_dispatcher_even_if_handler_accepts_kwargs():
+    command_registry.COMMAND_REGISTRY.clear()
+    received = {}
+
+    async def handler(message, **kw):
+        received.update(kw)
+
+    message = SimpleNamespace(
+        from_user=SimpleNamespace(id=1), answer=AsyncMock()
+    )
+    decorated = command_registry.command("test")(handler)
+
+    await decorated(message, dispatcher="disp", bots="bot")
+    assert "dispatcher" not in received
+    assert received.get("bots") == "bot"

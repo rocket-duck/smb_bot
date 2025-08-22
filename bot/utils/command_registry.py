@@ -39,10 +39,12 @@ def command(
                 )
                 return
             # aiogram v3 может передавать служебные параметры в kwargs,
-            # которые не предусмотрены нашим обработчиком. Чтобы избежать
-            # ошибок вида "unexpected keyword argument", фильтруем лишние
-            # ключи на основе сигнатуры функции.
+            # такие как ``dispatcher`` или другие технические ключи.
+            # Чтобы предотвратить ошибки "unexpected keyword argument",
+            # сначала удаляем ``dispatcher``, затем фильтруем оставшиеся
+            # параметры на основе сигнатуры пользовательской функции.
             if kwargs:
+                kwargs.pop("dispatcher", None)
                 sig = inspect.signature(func)
                 if not any(
                     p.kind == inspect.Parameter.VAR_KEYWORD
