@@ -1,3 +1,4 @@
+import inspect
 import logging
 from typing import Any, Callable, Dict, List, Optional
 
@@ -37,11 +38,19 @@ def command(
                     "Запросить права вы можете командой /get_access"
                 )
                 return
-            # aiogram v3 передает объект dispatcher среди аргументов обработчика,
-            # но большинство наших команд его не ожидают. Чтобы избежать ошибки
-            # вида "unexpected keyword argument 'dispatcher'", удаляем его из
-            # kwargs перед вызовом пользовательской функции.
-            kwargs.pop("dispatcher", None)
+            # aiogram v3 может передавать служебные параметры в kwargs,
+            # такие как ``dispatcher`` или другие технические ключи.
+            # Чтобы предотвратить ошибки "unexpected keyword argument",
+            # сначала удаляем ``dispatcher``, затем фильтруем оставшиеся
+            # параметры на основе сигнатуры пользовательской функции.
+            if kwargs:
+                kwargs.pop("dispatcher", None)
+                sig = inspect.signature(func)
+                if not any(
+                    p.kind == inspect.Parameter.VAR_KEYWORD
+                    for p in sig.parameters.values()
+                ):
+                    kwargs = {k: v for k, v in kwargs.items() if k in sig.parameters}
             return await func(message, *args, **kwargs)
 
         if router:
