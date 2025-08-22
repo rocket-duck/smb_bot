@@ -47,6 +47,23 @@ async def test_add_remove_get_chats(session_local):
 
 
 @pytest.mark.asyncio
+async def test_add_chat_restores_deleted(session_local):
+    await chat_manager.add_chat_async(1, "Test Chat", "adder")
+    assert await chat_manager.remove_chat_async(1, "remover") is True
+
+    # Попытка повторного добавления должна восстановить удалённый чат
+    await chat_manager.add_chat_async(1, "Test Chat", "adder")
+
+    async with session_local() as db:
+        result = await db.execute(select(Chat).filter(Chat.chat_id == "1"))
+        chat = result.scalars().first()
+        assert chat is not None
+        assert chat.deleted is False
+        assert chat.deleted_by is None
+        assert chat.deleted_at is None
+
+
+@pytest.mark.asyncio
 async def test_game_engine_updates_and_random(session_local):
     await game_engine.update_last_winner("1", "Chat", "u1", "User One", "user1")
     assert await game_engine.is_new_day("1") is False
