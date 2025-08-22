@@ -2,6 +2,7 @@ import pytest
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from sqlalchemy import select
+from datetime import datetime
 
 from bot.models import Chat, LastWinner, WinnerStats, Participant
 from bot.utils import chat_manager, game_engine, participants
@@ -134,3 +135,63 @@ async def test_update_participant_sets_last_active(session_local):
         participant = result.scalars().first()
         assert participant is not None
         assert participant.last_active is not None
+
+
+@pytest.mark.asyncio
+async def test_update_participant_private_chat_noop(session_local):
+    from types import SimpleNamespace
+
+    message = SimpleNamespace(
+        chat=SimpleNamespace(type="private", id=1, title="Private"),
+        from_user=SimpleNamespace(id=123, full_name="User", username="user"),
+    )
+
+    await participants.update_participant(message)
+
+    async with session_local() as db:
+        result = await db.execute(select(Participant))
+        assert result.scalars().all() == []
+
+
+@pytest.mark.asyncio
+async def test_update_participant_refreshes_last_active(session_local, monkeypatch):
+    from types import SimpleNamespace
+
+    message = SimpleNamespace(
+        chat=SimpleNamespace(type="group", id=1, title="Test Chat"),
+        from_user=SimpleNamespace(id=123, full_name="User", username="user"),
+    )
+
+    class FirstDatetime:
+        @classmethod
+        def utcnow(cls):
+            return datetime(2023, 1, 1)
+
+    monkeypatch.setattr(participants, "datetime", FirstDatetime)
+    await participants.update_participant(message)
+
+    async with session_local() as db:
+        result = await db.execute(
+            select(Participant).filter(
+                Participant.chat_id == "1", Participant.user_id == "123"
+            )
+        )
+        participant = result.scalars().first()
+        old_last_active = participant.last_active
+
+    class SecondDatetime:
+        @classmethod
+        def utcnow(cls):
+            return datetime(2023, 1, 2)
+
+    monkeypatch.setattr(participants, "datetime", SecondDatetime)
+    await participants.update_participant(message)
+
+    async with session_local() as db:
+        result = await db.execute(
+            select(Participant).filter(
+                Participant.chat_id == "1", Participant.user_id == "123"
+            )
+        )
+        participant = result.scalars().first()
+        assert participant.last_active > old_last_active
