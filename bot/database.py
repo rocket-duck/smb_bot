@@ -1,3 +1,4 @@
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     async_sessionmaker,
@@ -22,3 +23,11 @@ async def init_db():
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
+        # Simple manual migration for existing databases without new columns.
+        result = await conn.execute(text("PRAGMA table_info(participants)"))
+        columns = [row[1] for row in result]
+        if "last_active" not in columns:
+            await conn.execute(
+                text("ALTER TABLE participants ADD COLUMN last_active DATETIME")
+            )
