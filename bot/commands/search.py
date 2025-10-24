@@ -3,6 +3,7 @@ import logging
 from typing import Optional
 
 import openai
+from openai import RateLimitError, BadRequestError
 from aiogram import Router, types
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
@@ -171,6 +172,18 @@ async def query_openai(user_query: str, message: types.Message) -> str:
             answer,
         )
         return answer
+    except RateLimitError as e:
+        logging.error(
+            "Rate limit error from OpenAI for user %s: %s",
+            message.from_user.id, e
+        )
+        return "Превышена квота OpenAI. Попробуйте позже."
+    except BadRequestError as e:
+        logging.error(
+            "Invalid request error from OpenAI for user %s: %s",
+            message.from_user.id, e
+        )
+        return "Некорректный запрос к OpenAI. Обратитесь к администратору."
     except Exception as e:
         logging.error(
             "Ошибка вызова OpenAI API для пользователя %s: %s",
