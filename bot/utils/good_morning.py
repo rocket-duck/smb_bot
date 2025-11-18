@@ -88,8 +88,8 @@ async def send_good_morning(bot: Bot) -> bool:
 
 
 async def schedule_good_morning(bot: Bot,
-                                hour: int = 13,
-                                minute: int = 53) -> None:
+                                hour: int = 9,
+                                minute: int = 00) -> None:
     """
     Периодически отправляет утреннее сообщение по будням.
 
