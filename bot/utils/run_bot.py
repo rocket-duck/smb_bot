@@ -6,6 +6,7 @@ from bot.database import init_db
 from bot.utils.handlers import register_handlers
 from bot.modules.commands_list import set_bot_commands
 from bot.config.logging import setup_logging
+from bot.utils.good_morning import schedule_good_morning
 
 
 async def run_bot():
@@ -26,6 +27,9 @@ async def run_bot():
 
     # Устанавливаем команды, передавая напрямую экземпляр bot
     await set_bot_commands(bot, user_is_admin=True)
+
+    # Планируем отправку утреннего сообщения (проверка флага внутри модуля)
+    asyncio.create_task(schedule_good_morning(bot))
 
     # Запуск бота
     logging.info("Запуск бота...")

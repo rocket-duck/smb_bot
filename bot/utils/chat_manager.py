@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime
+from datetime import UTC, datetime
 
 from aiogram.types import Message
 from sqlalchemy import select
@@ -35,7 +35,7 @@ async def add_chat_async(chat_id: int, chat_title: str, added_by: str) -> None:
                 chat_id=str(chat_id),
                 title=chat_title,
                 added_by=added_by,
-                added_at=datetime.now(),
+                added_at=datetime.now(UTC),
                 deleted=False,
             )
             session.add(new_chat)
@@ -68,7 +68,7 @@ async def remove_chat_async(chat_id: int, removed_by: str) -> bool:
 
             chat.deleted = True
             chat.deleted_by = removed_by
-            chat.deleted_at = datetime.utcnow()
+            chat.deleted_at = datetime.now(UTC)
             await session.commit()
             logger.info(
                 f"Чат {chat_id} ({chat.title}) помечен как удалённый пользователем {removed_by}."

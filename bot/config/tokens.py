@@ -1,8 +1,4 @@
 import os
-from dotenv import load_dotenv
-
-# Загружаем переменные окружения из файла .env
-load_dotenv()
 
 # Telegram Bot tokens
 BOT_USERNAME = os.getenv("BOT_USERNAME")
@@ -20,3 +16,6 @@ if OPENAI_API_KEY is None:
 
 # пользователь который выдает доступ к админ правам
 ADMIN_USER_ID = os.getenv("ADMIN_USER_ID")
+
+# Чат для отправки утреннего сообщения «Доброе утро»
+GOOD_MORNING_CHAT_ID = os.getenv("GOOD_MORNING_CHAT_ID")

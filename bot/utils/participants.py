@@ -1,10 +1,22 @@
 import logging
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 
 from bot.database import SessionLocal
 from bot.models import Participant
+
+
+def _now_utc():
+    """
+    Возвращает текущее время в UTC.
+
+    При монкипатчинге datetime (в тестах) используем utcnow() как fallback.
+    """
+    now_attr = getattr(datetime, "now", None)
+    if callable(now_attr):
+        return now_attr(UTC)
+    return datetime.utcnow()
 
 
 async def update_participant(message) -> None:
@@ -35,7 +47,7 @@ async def update_participant(message) -> None:
                     full_name=user.full_name,
                     username=user.username or "",
                     chat_title=message.chat.title or "",
-                    last_active=datetime.utcnow(),
+                    last_active=_now_utc(),
                 )
                 session.add(participant)
                 await session.commit()
@@ -44,7 +56,7 @@ async def update_participant(message) -> None:
                 )
             else:
                 # Обновляем время последней активности и название чата (на случай, если оно изменилось)
-                participant.last_active = datetime.utcnow()
+                participant.last_active = _now_utc()
                 participant.chat_title = message.chat.title or ""
                 await session.commit()
                 logging.debug(
