@@ -72,3 +72,12 @@ class AdminUser(Base):
     added_at = Column(DateTime, default=func.now(), nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
     removed_at = Column(DateTime, nullable=True)
+
+
+class MorningImage(Base):
+    __tablename__ = "morning_images"
+
+    id = Column(Integer, primary_key=True, index=True)
+    filename = Column(String, unique=True, nullable=False)
+    used = Column(Boolean, default=False, nullable=False)
+    last_sent_at = Column(DateTime, nullable=True)

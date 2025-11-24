@@ -10,7 +10,8 @@ IMG_DIR = BASE_DIR / "utils" / "img"
 
 
 async def handle_who_request(message: Message,
-                             who_request_enable: bool):
+                             who_request_enable: bool,
+                             force_loh_image: bool = False):
     """
     Обрабатывает сообщения, начинающиеся с заданных фраз.
     Если сообщение соответствует, отправляет фиксированное изображение в ответ.
@@ -33,8 +34,8 @@ async def handle_who_request(message: Message,
     logging.debug(f"Обнаружен запрос '{message_text}' "
                   f"с одним из триггеров: {who_request_dict.TRIGGERS}")
 
-    # Путь к конкретному изображению
-    image_path = IMG_DIR / "a_kto_cenz.png"
+    image_name = "loh.jpg" if force_loh_image else "a_kto_cenz.png"
+    image_path = IMG_DIR / image_name
     if not image_path.exists():
         logging.warning(f"Изображение '{image_path}' не найдено.")
         return

@@ -70,8 +70,11 @@ async def handle_message(message: Message, state: FSMContext) -> None:
         bot_roll = random.randint(1, 20)
         user_roll = random.randint(1, 20)
         logging.debug(f"Кубики who_request: пользователь={user_roll}, бот={bot_roll}")
-        # Если natural 20 или пользовательский >= бот, но не natural 1
-        if user_roll == 20 or (user_roll > 1 and user_roll >= bot_roll):
+        if user_roll == 1:
+            await handle_who_request(message,
+                                     flag.WHO_REQUEST_ENABLE,
+                                     force_loh_image=True)
+        elif user_roll == 20 or (user_roll > 1 and user_roll >= bot_roll):
             await handle_who_request(message, flag.WHO_REQUEST_ENABLE)
         else:
             logging.debug("Условие бросков кубиков не выполнено")

@@ -6,9 +6,12 @@ from datetime import UTC, datetime, time, timedelta, timezone
 
 from aiogram import Bot
 from aiogram.types import FSInputFile
+from sqlalchemy import delete, select, update
 
 from bot.config import flags
 from bot.config.tokens import GOOD_MORNING_CHAT_ID
+from bot.database import SessionLocal
+from bot.models import MorningImage
 
 
 IMAGES_DIR = os.path.join(os.path.dirname(__file__), "morning_pic")
@@ -17,8 +20,50 @@ IMAGES_DIR = os.path.join(os.path.dirname(__file__), "morning_pic")
 MOSCOW_TZ = timezone(timedelta(hours=3))
 
 
-def _get_random_image_path() -> str | None:
-    """Возвращает путь к случайной картинке из папки IMAGES_DIR."""
+async def _sync_db_with_files(session, files: list[str]) -> None:
+    """Добавляет новые файлы в таблицу и удаляет те, которых больше нет."""
+    result = await session.execute(select(MorningImage))
+    existing = result.scalars().all()
+    existing_names = {row.filename for row in existing}
+    changed = False
+
+    for filename in files:
+        if filename not in existing_names:
+            session.add(MorningImage(filename=filename, used=False))
+            changed = True
+
+    removed = [row.filename for row in existing if row.filename not in files]
+    if removed:
+        await session.execute(
+            delete(MorningImage).where(MorningImage.filename.in_(removed))
+        )
+        changed = True
+
+    if changed:
+        await session.commit()
+
+
+async def _select_available_images(session) -> list[MorningImage]:
+    """Возвращает список ещё не отправленных картинок."""
+    result = await session.execute(
+        select(MorningImage).where(MorningImage.used.is_(False))
+    )
+    available = result.scalars().all()
+    if available:
+        return available
+
+    await session.execute(update(MorningImage).values(used=False))
+    await session.commit()
+    result = await session.execute(
+        select(MorningImage).where(MorningImage.used.is_(False))
+    )
+    return result.scalars().all()
+
+
+async def _reserve_image() -> tuple[str, int, str] | None:
+    """
+    Возвращает путь и идентификатор случайной картинки и помечает её как «использованную».
+    """
     if not os.path.isdir(IMAGES_DIR):
         logging.warning(
             "Папка с картинками для доброго утра не найдена: %s", IMAGES_DIR
@@ -40,8 +85,31 @@ def _get_random_image_path() -> str | None:
         )
         return None
 
-    filename = random.choice(files)
-    return os.path.join(IMAGES_DIR, filename)
+    async with SessionLocal() as session:
+        await _sync_db_with_files(session, files)
+        available = await _select_available_images(session)
+        if not available:
+            logging.warning("Не удалось подобрать картинку: таблица пуста")
+            return None
+
+        record = random.choice(available)
+        record.used = True
+        await session.commit()
+        return os.path.join(IMAGES_DIR, record.filename), record.id, record.filename
+
+
+async def _finalize_image_usage(image_id: int, success: bool) -> None:
+    """Фиксирует результат отправки картинки."""
+    async with SessionLocal() as session:
+        image = await session.get(MorningImage, image_id)
+        if not image:
+            return
+        if success:
+            image.last_sent_at = datetime.now(UTC)
+        else:
+            image.used = False
+            image.last_sent_at = None
+        await session.commit()
 
 
 async def send_good_morning(bot: Bot) -> bool:
@@ -64,10 +132,11 @@ async def send_good_morning(bot: Bot) -> bool:
         )
         return False
 
-    image_path = _get_random_image_path()
-    if image_path is None:
+    image_info = await _reserve_image()
+    if image_info is None:
         # уже залогировано внутри _get_random_image_path
         return False
+    image_path, image_id, filename = image_info
 
     try:
         photo = FSInputFile(image_path)
@@ -81,9 +150,11 @@ async def send_good_morning(bot: Bot) -> bool:
             GOOD_MORNING_CHAT_ID,
             image_path,
         )
+        await _finalize_image_usage(image_id, success=True)
         return True
     except Exception as exc:  # noqa: BLE001
         logging.exception("Ошибка при отправке утреннего сообщения: %s", exc)
+        await _finalize_image_usage(image_id, success=False)
         return False
 
 
