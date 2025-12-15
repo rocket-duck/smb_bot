@@ -12,3 +12,5 @@ coverage.xml
 data/
 .env
 bot/.env
+.vscode/
+.continue/
