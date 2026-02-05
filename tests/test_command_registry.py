@@ -45,30 +45,6 @@ async def test_command_flag_false():
     message.answer.assert_not_called()
 
 
-@pytest.mark.asyncio
-async def test_command_admin_only(monkeypatch):
-    command_registry.COMMAND_REGISTRY.clear()
-    called = {"value": False}
-
-    async def handler(message):
-        called["value"] = True
-
-    message = SimpleNamespace(
-        from_user=SimpleNamespace(id=1), answer=AsyncMock()
-    )
-    monkeypatch.setattr(
-        command_registry, "is_user_admin_db", AsyncMock(return_value=False)
-    )
-    decorated = command_registry.command("test", admin_only=True)(handler)
-
-    await decorated(message)
-    assert called["value"] is False
-    message.answer.assert_awaited_once_with(
-        "У вас нет прав для использования этой команды.\n"
-        "Запросить права вы можете командой /get_access"
-    )
-
-
 def test_command_router_registration():
     mock_router = MagicMock()
     mock_router.message.register = MagicMock()

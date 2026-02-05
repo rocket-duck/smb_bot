@@ -62,18 +62,6 @@ class SearchLog(Base):
     timestamp = Column(DateTime, default=func.now(), nullable=False)
 
 
-class AdminUser(Base):
-    __tablename__ = "admin_users"
-
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(String, unique=True, nullable=False)
-    username = Column(String, nullable=True)
-    full_name = Column(String, nullable=False)
-    added_at = Column(DateTime, default=func.now(), nullable=False)
-    is_active = Column(Boolean, default=True, nullable=False)
-    removed_at = Column(DateTime, nullable=True)
-
-
 class MorningImage(Base):
     __tablename__ = "morning_images"
 

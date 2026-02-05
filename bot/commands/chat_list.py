@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 router = Router()
 
 
-@command("chat_list", flag=GET_CHAT_LIST, admin_only=True, router=router)
+@command("chat_list", flag=GET_CHAT_LIST, router=router)
 async def handle_chat_list(message: types.Message) -> None:
     chats = await get_all_chats_async()
     if not chats:

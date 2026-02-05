@@ -172,8 +172,8 @@ LINKS = {
     "Тогглы": {
         "key": "toggles",
         "subsections": {
-            "Панель администрирования тогглов": {
-                "key": "toggles_admin_panel",
+            "Панель управления тогглами": {
+                "key": "toggles_panel",
                 "url": "https://sfera.inno.local/knowledge/pages?id=1504907"
             },
             "Создание тогглов": {

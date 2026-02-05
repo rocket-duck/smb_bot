@@ -13,7 +13,6 @@ COMMAND_DEFINITIONS: List[Dict[str, Any]] = [
         "private_chat": True,
         "group_chat": True,
         "visible_in_help": False,
-        "is_admin": False,
     },
     {
         "command": "docs",
@@ -22,7 +21,6 @@ COMMAND_DEFINITIONS: List[Dict[str, Any]] = [
         "private_chat": True,
         "group_chat": True,
         "visible_in_help": True,
-        "is_admin": False,
     },
     {
         "command": "announce",
@@ -31,7 +29,6 @@ COMMAND_DEFINITIONS: List[Dict[str, Any]] = [
         "private_chat": True,
         "group_chat": False,
         "visible_in_help": True,
-        "is_admin": True,  # Только для администраторов
     },
     {
         "command": "search",
@@ -40,7 +37,6 @@ COMMAND_DEFINITIONS: List[Dict[str, Any]] = [
         "private_chat": True,
         "group_chat": True,
         "visible_in_help": True,
-        "is_admin": False,
     },
     {
         "command": "add_chat",
@@ -49,7 +45,6 @@ COMMAND_DEFINITIONS: List[Dict[str, Any]] = [
         "private_chat": False,
         "group_chat": False,
         "visible_in_help": False,
-        "is_admin": False,
     },
     {
         "command": "remove_chat",
@@ -58,7 +53,6 @@ COMMAND_DEFINITIONS: List[Dict[str, Any]] = [
         "private_chat": False,
         "group_chat": False,
         "visible_in_help": False,
-        "is_admin": False,
     },
     {
         "command": "best_qa",
@@ -67,7 +61,6 @@ COMMAND_DEFINITIONS: List[Dict[str, Any]] = [
         "private_chat": False,
         "group_chat": True,
         "visible_in_help": True,
-        "is_admin": False,
     },
     {
         "command": "best_qa_stat",
@@ -76,18 +69,7 @@ COMMAND_DEFINITIONS: List[Dict[str, Any]] = [
         "private_chat": False,
         "group_chat": True,
         "visible_in_help": True,
-        "is_admin": False,
     },
-    {
-        "command": "get_access",
-        "description": "Запросить доступ",
-        "flag": flags.GET_ACCESS_ENABLE,
-        "private_chat": True,
-        "group_chat": False,
-        "visible_in_help": True,
-        "is_admin": False,
-    },
-    # Новая команда для администраторов:
     {
         "command": "chat_list",
         "description": "Список добавленных чатов",
@@ -95,7 +77,6 @@ COMMAND_DEFINITIONS: List[Dict[str, Any]] = [
         "private_chat": True,
         "group_chat": False,
         "visible_in_help": True,
-        "is_admin": True,
     },
     {
         "command": "epa_guide",
@@ -104,7 +85,6 @@ COMMAND_DEFINITIONS: List[Dict[str, Any]] = [
         "private_chat": True,
         "group_chat": True,
         "visible_in_help": True,
-        "is_admin": False,
     },
     {
         "command": "epa_contacts",
@@ -113,7 +93,6 @@ COMMAND_DEFINITIONS: List[Dict[str, Any]] = [
         "private_chat": True,
         "group_chat": True,
         "visible_in_help": True,
-        "is_admin": False,
     },
     {
         "command": "vtb_support",
@@ -122,7 +101,6 @@ COMMAND_DEFINITIONS: List[Dict[str, Any]] = [
         "private_chat": True,
         "group_chat": True,
         "visible_in_help": True,
-        "is_admin": False,
     },
 ]
 
@@ -133,8 +111,7 @@ def add_command(commands: List[Dict[str, Any]],
                 flag: bool,
                 private_chat: bool = True,
                 group_chat: bool = True,
-                visible_in_help: bool = True,
-                is_admin: bool = False) -> None:
+                visible_in_help: bool = True) -> None:
     if flag:
         commands.append({
             "command": BotCommand(command=command_name,
@@ -142,23 +119,19 @@ def add_command(commands: List[Dict[str, Any]],
             "private_chat": private_chat,
             "group_chat": group_chat,
             "visible_in_help": visible_in_help,
-            "is_admin": is_admin,
         })
 
 
-def get_all_commands(user_is_admin: bool = False) -> List[Dict[str, Any]]:
+def get_all_commands() -> List[Dict[str, Any]]:
     commands: List[Dict[str, Any]] = []
     for cmd_def in COMMAND_DEFINITIONS:
-        if cmd_def.get("is_admin", False) and not user_is_admin:
-            continue
         add_command(commands,
                     command_name=cmd_def["command"],
                     description=cmd_def["description"],
                     flag=cmd_def["flag"],
                     private_chat=cmd_def["private_chat"],
                     group_chat=cmd_def["group_chat"],
-                    visible_in_help=cmd_def["visible_in_help"],
-                    is_admin=cmd_def.get("is_admin", False))
+                    visible_in_help=cmd_def["visible_in_help"])
     return commands
 
 
@@ -168,8 +141,8 @@ def get_commands_for_scope(commands: List[Dict[str, Any]],
             and cmd.get("visible_in_help")]
 
 
-async def set_bot_commands(bot: Bot, user_is_admin: bool = False) -> None:
-    commands = get_all_commands(user_is_admin=user_is_admin)
+async def set_bot_commands(bot: Bot) -> None:
+    commands = get_all_commands()
     from aiogram.types import (BotCommandScopeDefault,
                                BotCommandScopeAllGroupChats)
     private_commands = get_commands_for_scope(commands,

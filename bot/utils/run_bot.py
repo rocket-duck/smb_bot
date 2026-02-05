@@ -26,7 +26,7 @@ async def run_bot():
     register_handlers(dp)
 
     # Устанавливаем команды, передавая напрямую экземпляр bot
-    await set_bot_commands(bot, user_is_admin=True)
+    await set_bot_commands(bot)
 
     # Планируем отправку утреннего сообщения (проверка флага внутри модуля)
     asyncio.create_task(schedule_good_morning(bot))

@@ -183,7 +183,7 @@ async def query_openai(user_query: str, message: types.Message) -> str:
             "Invalid request error from OpenAI for user %s: %s",
             message.from_user.id, e
         )
-        return "Некорректный запрос к OpenAI. Обратитесь к администратору."
+        return "Некорректный запрос к OpenAI. Обратитесь в поддержку."
     except Exception as e:
         logging.error(
             "Ошибка вызова OpenAI API для пользователя %s: %s",

@@ -30,7 +30,7 @@ async def handle_docs(message: Message, state: FSMContext) -> None:
         menu, _ = create_menu(user_id=user_id)
         if not menu.inline_keyboard:
             logger.warning("Главное меню пустое. Проверьте настройки LINKS.")
-            await message.answer("Меню временно недоступно. Обратитесь к администратору.")
+            await message.answer("Меню временно недоступно. Обратитесь в поддержку.")
             return
 
         main_menu_text = "Вот какие ссылки я знаю.\nВыберите из меню ниже:"

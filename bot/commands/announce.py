@@ -88,7 +88,7 @@ async def process_announce(
     await message.answer("Сообщение отправлено во все активные чаты.")
 
 
-@command("announce", flag=ANNOUNCE_ENABLE, admin_only=True, router=router)
+@command("announce", flag=ANNOUNCE_ENABLE, router=router)
 async def handle_announce(message: types.Message, state: FSMContext) -> None:
     announce_text, reply_msg = await prepare_announce(message)
     if announce_text is None and reply_msg is None:

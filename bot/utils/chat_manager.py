@@ -1,7 +1,6 @@
 import logging
 from datetime import UTC, datetime
 
-from aiogram.types import Message
 from sqlalchemy import select
 
 from bot.database import SessionLocal
@@ -78,20 +77,6 @@ async def remove_chat_async(chat_id: int, removed_by: str) -> bool:
             await session.rollback()
             logger.error(f"Ошибка при удалении чата {chat_id}: {e}")
             return False
-
-
-async def is_user_admin(message: Message) -> bool:
-    """Проверяет, является ли пользователь администратором чата."""
-    try:
-        chat_administrators = await message.bot.get_chat_administrators(
-            message.chat.id
-        )
-        return any(
-            admin.user.id == message.from_user.id for admin in chat_administrators
-        )
-    except Exception as e:
-        logger.error(f"Ошибка при проверке администратора: {e}")
-        return False
 
 
 async def get_all_chats_async():
