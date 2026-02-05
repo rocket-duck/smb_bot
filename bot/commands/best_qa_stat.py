@@ -30,7 +30,7 @@ def format_stats(message: Message, stats: list) -> str:
     chat_title = stats[0].chat_title if stats[0].chat_title else message.chat.title
     stat_lines = [f"Статистика победителей для чата: {chat_title}:"]
     for stat in stats:
-        username = f" (@{stat.username})" if stat.username else ""
+        username = f" (username: {stat.username})" if stat.username else ""
         declension = format_declension(stat.wins)
         stat_lines.append(f"• {stat.full_name}{username}: {stat.wins} {declension}")
     return "\n".join(stat_lines)
