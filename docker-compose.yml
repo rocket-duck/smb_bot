@@ -1,8 +1,8 @@
 services:
   telegram_bot:
-    build: .
+    image: ghcr.io/rocket-duck/smb_bot:latest
     container_name: telegram_bot
-    restart: always
+    restart: unless-stopped
     environment:
       BOT_USERNAME: "${BOT_USERNAME}"
       API_TOKEN: "${API_TOKEN}"
