@@ -80,21 +80,21 @@ async def handle_message(message: Message, state: FSMContext) -> None:
                 f"Кубики who_request: пользователь={user_roll}, бот={bot_roll}"
             )
             if user_roll == 1:
-                if flag.FORCE_BESTOLOCH_ENABLE:
-                    await handle_who_request(
-                        message,
-                        flag.WHO_REQUEST_ENABLE,
-                        force_bestoloch_enable=True,
-                        user_roll=user_roll,
-                        bot_roll=bot_roll,
-                    )
-                else:
-                    await handle_who_request(
-                        message,
-                        flag.WHO_REQUEST_ENABLE,
-                        user_roll=user_roll,
-                        bot_roll=bot_roll,
-                    )
+                await handle_who_request(
+                    message,
+                    flag.WHO_REQUEST_ENABLE,
+                    force_image_name="loh.jpg",
+                    user_roll=user_roll,
+                    bot_roll=bot_roll,
+                )
+            elif bot_roll == 1:
+                await handle_who_request(
+                    message,
+                    flag.WHO_REQUEST_ENABLE,
+                    force_image_name="bot_one.jpg",
+                    user_roll=user_roll,
+                    bot_roll=bot_roll,
+                )
             elif user_roll == 20 or (user_roll > 1 and user_roll >= bot_roll):
                 await handle_who_request(
                     message,

@@ -15,7 +15,7 @@ IMG_DIR = BASE_DIR / "utils" / "img"
 async def handle_who_request(
     message: Message,
     who_request_enable: bool,
-    force_bestoloch_enable: bool = False,
+    force_image_name: str | None = None,
     user_roll: int | None = None,
     bot_roll: int | None = None,
 ):
@@ -47,7 +47,7 @@ async def handle_who_request(
         f"с одним из триггеров: {who_request_dict.TRIGGERS}"
     )
 
-    image_name = "bestoloch.jpg" if force_bestoloch_enable else "a_kto.jpg"
+    image_name = force_image_name or "a_kto.jpg"
     image_path = IMG_DIR / image_name
     if not image_path.exists():
         logging.warning(f"Изображение '{image_path}' не найдено.")
