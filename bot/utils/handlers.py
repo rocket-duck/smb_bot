@@ -4,8 +4,8 @@ import pkgutil
 from aiogram.filters import Command
 
 import bot.commands
-from bot.modules.buttons import register_button_handlers
 from bot.messages.messages import register_message_handlers
+from bot.modules.buttons import register_button_handlers
 from bot.utils.command_registry import COMMAND_REGISTRY
 
 

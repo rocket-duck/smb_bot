@@ -1,8 +1,8 @@
-import re
 import logging
+import re
+
 from bot.dicts.links_dict import LINKS
 from bot.messages.errors_parse import build_error_defs
-from typing import List, Tuple
 
 
 def parse_error_codes(text: str, enabled: bool):
@@ -53,7 +53,7 @@ def find_links_by_keyword(keyword: str, enabled: bool):
         logging.debug(f"Пропускаем запрос на статус: {keyword}")
         return []
     logging.debug(f"Поиск по ключевому слову: {keyword}")
-    raw_results: List[Tuple[str, str]] = []
+    raw_results: list[tuple[str, str]] = []
 
     # Прямой поиск по ключам разделов
     for key, obj in LINKS.items():
@@ -92,10 +92,7 @@ def _recursive_search(data, keyword, results, parent_name=""):
             _process_section(key, value, keyword, results)
         elif _has_subsections(value):
             section_name = _build_section_name(parent_name, key)
-            _recursive_search(value["subsections"],
-                              keyword,
-                              results,
-                              section_name)
+            _recursive_search(value["subsections"], keyword, results, section_name)
 
 
 def _is_section(value):

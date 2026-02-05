@@ -1,25 +1,30 @@
-import logging
 import asyncio
+import logging
+
 from aiogram import Bot, Dispatcher
-from bot.config.tokens import API_TOKEN
-from bot.database import init_db
-from bot.utils.handlers import register_handlers
-from bot.modules.commands_list import set_bot_commands
+
 from bot.config.logging import setup_logging
+from bot.config.settings import get_settings
+from bot.config.telemetry import setup_sentry
+from bot.database import init_db
+from bot.modules.commands_list import set_bot_commands
 from bot.utils.good_morning import schedule_good_morning
+from bot.utils.handlers import register_handlers
 
 
 async def run_bot():
     """
     Главная функция для запуска бота.
     """
-    setup_logging()
+    settings = get_settings()
+    setup_logging(level=settings.log_level)
+    setup_sentry(settings)
 
     # Инициализация базы данных
     await init_db()
 
     # Инициализация бота и диспетчера
-    bot = Bot(token=API_TOKEN)
+    bot = Bot(token=settings.api_token)
     dp = Dispatcher()
 
     # Регистрация обработчиков
@@ -36,5 +41,6 @@ async def run_bot():
     await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     asyncio.run(run_bot())

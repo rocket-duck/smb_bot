@@ -1,13 +1,14 @@
-from typing import Tuple, Optional
-from aiogram.types import CallbackQuery
-from aiogram.fsm.context import FSMContext
-from bot.modules.menu import create_menu
 import logging
+
+from aiogram.fsm.context import FSMContext
+from aiogram.types import CallbackQuery
+
+from bot.modules.menu import create_menu
 
 logger = logging.getLogger(__name__)
 
 
-def parse_callback_data(data: str) -> Optional[Tuple[str, str, str]]:
+def parse_callback_data(data: str) -> tuple[str, str, str] | None:
     """
     Парсит callback_data, ожидая формат "menu:user_id:menu_key".
     Возвращает кортеж (prefix, user_id, menu_key),
@@ -57,13 +58,10 @@ async def handle_button(callback: CallbackQuery, state: FSMContext) -> None:
                     reply_markup=menu,
                 )
             else:
-                await callback.answer("Этот раздел пуст.",
-                                      show_alert=True)
+                await callback.answer("Этот раздел пуст.", show_alert=True)
     except Exception as e:
-        logger.error(f"Ошибка при обработке кнопки: {e}",
-                     exc_info=True)
-        await callback.answer("Произошла ошибка. Попробуйте снова.",
-                              show_alert=True)
+        logger.error(f"Ошибка при обработке кнопки: {e}", exc_info=True)
+        await callback.answer("Произошла ошибка. Попробуйте снова.", show_alert=True)
 
 
 def register_button_handlers(dp) -> None:
@@ -73,6 +71,5 @@ def register_button_handlers(dp) -> None:
     начинающиеся с "menu:".
     """
     dp.callback_query.register(
-        handle_button,
-        lambda callback: callback.data.startswith("menu:")
+        handle_button, lambda callback: callback.data.startswith("menu:")
     )

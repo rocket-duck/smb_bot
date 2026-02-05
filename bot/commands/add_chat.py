@@ -1,4 +1,5 @@
 import logging
+
 from aiogram.types import Message
 
 from bot.config.flags import ADD_CHAT_ENABLE

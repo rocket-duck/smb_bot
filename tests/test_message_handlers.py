@@ -1,12 +1,12 @@
 import pytest
 
-from bot.messages.message_parse import parse_error_codes, find_links_by_keyword
-from bot.messages.messages import format_response
 from bot.dicts.errors_dict import raw_errors
 from bot.dicts.links_dict import LINKS
+from bot.messages.message_parse import find_links_by_keyword, parse_error_codes
+from bot.messages.messages import format_response
 
 # Только ключи из LINKS, у которых есть прямое поле 'url' или 'bot'
-VALID_LINK_KEYS = [k for k, v in LINKS.items() if 'url' in v or 'bot' in v]
+VALID_LINK_KEYS = [k for k, v in LINKS.items() if "url" in v or "bot" in v]
 
 
 # 1) Тестируем, что каждый код из raw_errors парсится:
@@ -14,9 +14,9 @@ VALID_LINK_KEYS = [k for k, v in LINKS.items() if 'url' in v or 'bot' in v]
 def test_parse_error_codes_exact_match(code, description):
     matches = parse_error_codes(code, True)
     assert (code, description) in matches, (
-        f"Парсер должен найти {(code, description)}, "
-        f"а нашёл {matches}"
+        f"Парсер должен найти {(code, description)}, " f"а нашёл {matches}"
     )
+
 
 # 2) Тестируем, что поиск по каждому ключевому слову из LINKS не даёт пустого списка:
 
@@ -26,6 +26,7 @@ def test_find_links_by_keyword_returns_results(keyword):
     results = find_links_by_keyword(keyword, True)
     assert isinstance(results, list)
     assert results, f"По ключу '{keyword}' не найдено ни одной ссылки"
+
 
 # 3) Проверяем, что форматирование ответа включает все переданные пары:
 

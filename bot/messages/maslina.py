@@ -1,6 +1,7 @@
 import logging
 from pathlib import Path
-from aiogram.types import Message, FSInputFile
+
+from aiogram.types import FSInputFile, Message
 
 
 def contains_maslina(text: str) -> bool:

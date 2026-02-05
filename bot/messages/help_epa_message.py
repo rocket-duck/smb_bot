@@ -23,7 +23,9 @@ _AUTH_ISSUE_PATTERNS = [
     r"не могу залогиниться",
     r"войти не получается",
 ]
-_AUTH_ISSUE_REGEX = re.compile(r"(?:{})".format("|".join(_AUTH_ISSUE_PATTERNS)), flags=re.IGNORECASE)
+_AUTH_ISSUE_REGEX = re.compile(
+    r"(?:{})".format("|".join(_AUTH_ISSUE_PATTERNS)), flags=re.IGNORECASE
+)
 
 
 def get_auth_issue_response(text: str, enabled: bool) -> str | None:
@@ -34,7 +36,9 @@ def get_auth_issue_response(text: str, enabled: bool) -> str | None:
     if not enabled:
         return None
     if _AUTH_ISSUE_REGEX.search(text or ""):
-        return ("Что бы могли вам помочь, пожалуйста, приложите логи авторизации в которых видно полученную ошибку "
-                "при авторизации и респонс. Так же можете указать код ошибки, который отображается на экране "
-                "устройства.")
+        return (
+            "Что бы могли вам помочь, пожалуйста, приложите логи авторизации в которых видно полученную ошибку "
+            "при авторизации и респонс. Так же можете указать код ошибки, который отображается на экране "
+            "устройства."
+        )
     return None

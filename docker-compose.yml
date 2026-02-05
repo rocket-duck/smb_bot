@@ -3,8 +3,17 @@ services:
     build: .
     container_name: telegram_bot
     restart: always
-    env_file:
-      - bot/.env
+    environment:
+      BOT_USERNAME: "${BOT_USERNAME}"
+      API_TOKEN: "${API_TOKEN}"
+      OPENAI_API_KEY: "${OPENAI_API_KEY}"
+      NFSW_CHAT_ID: "${NFSW_CHAT_ID}"
+      LOG_LEVEL: "${LOG_LEVEL:-INFO}"
+      DATABASE_URL: "${DATABASE_URL:-sqlite+aiosqlite:///data/bot.db}"
+      SENTRY_DSN: "${SENTRY_DSN}"
+      SENTRY_ENVIRONMENT: "${SENTRY_ENVIRONMENT:-development}"
+      SENTRY_TRACES_SAMPLE_RATE: "${SENTRY_TRACES_SAMPLE_RATE:-0.0}"
+      SENTRY_PROFILES_SAMPLE_RATE: "${SENTRY_PROFILES_SAMPLE_RATE:-0.0}"
+      SENTRY_RELEASE: "${SENTRY_RELEASE}"
     volumes:
       - ./data:/app/data
-      - ./logs:/app/logs

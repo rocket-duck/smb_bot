@@ -1,19 +1,20 @@
 import inspect
 import logging
-from typing import Any, Callable, Dict, List, Optional
+from collections.abc import Callable
+from typing import Any
 
 from aiogram import Router
 from aiogram.filters import Command
 from aiogram.types import Message
 
-COMMAND_REGISTRY: List[Dict[str, Any]] = []
+COMMAND_REGISTRY: list[dict[str, Any]] = []
 
 
 def command(
     name: str,
     flag: bool = True,
     *,
-    router: Optional[Router] = None,
+    router: Router | None = None,
 ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """Декоратор для регистрации команд.
 

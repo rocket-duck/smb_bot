@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
 
 from aiogram import Router, types
 from aiogram.fsm.context import FSMContext
@@ -17,10 +17,13 @@ router = Router()
 
 class AnnounceState(StatesGroup):
     """Состояния FSM для команды announce."""
+
     waiting_for_announce = State()
 
 
-async def prepare_announce(message: types.Message) -> Tuple[Optional[str], Optional[types.Message]]:
+async def prepare_announce(
+    message: types.Message,
+) -> tuple[str | None, types.Message | None]:
     if message.reply_to_message:
         if message.text.startswith("/announce"):
             additional_text = message.text.replace("/announce", "", 1).strip()
@@ -37,10 +40,10 @@ async def prepare_announce(message: types.Message) -> Tuple[Optional[str], Optio
 
 
 async def send_announce_to_chat(
-    chat: Dict[str, Any],
+    chat: dict[str, Any],
     message: types.Message,
-    announce_message: Optional[str],
-    reply_to_message: Optional[types.Message],
+    announce_message: str | None,
+    reply_to_message: types.Message | None,
 ) -> None:
     """Отправляет рассылку в один чат."""
     try:
@@ -59,14 +62,12 @@ async def send_announce_to_chat(
 
 async def process_announce(
     message: types.Message,
-    announce_message: Optional[str],
-    reply_to_message: Optional[types.Message],
+    announce_message: str | None,
+    reply_to_message: types.Message | None,
 ) -> None:
     async with SessionLocal() as session:
         try:
-            result = await session.execute(
-                select(Chat).filter(Chat.deleted.is_(False))
-            )
+            result = await session.execute(select(Chat).filter(Chat.deleted.is_(False)))
             chat_list_db = result.scalars().all()
         except Exception as e:
             logger.error("Ошибка получения списка чатов: %s", e)
@@ -92,9 +93,7 @@ async def process_announce(
 async def handle_announce(message: types.Message, state: FSMContext) -> None:
     announce_text, reply_msg = await prepare_announce(message)
     if announce_text is None and reply_msg is None:
-        await message.answer(
-            "Введите текст для рассылки в чаты или введите \"отмена\":"
-        )
+        await message.answer('Введите текст для рассылки в чаты или введите "отмена":')
         await state.set_state(AnnounceState.waiting_for_announce)
         await state.update_data(initial_reply_id=message.message_id)
         return

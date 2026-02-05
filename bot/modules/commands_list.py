@@ -1,11 +1,12 @@
-from typing import List, Dict, Any
+from typing import Any
+
 from aiogram import Bot
 from aiogram.types import BotCommand
+
 from bot.config import flags
 
-
 # Декларативное описание команд
-COMMAND_DEFINITIONS: List[Dict[str, Any]] = [
+COMMAND_DEFINITIONS: list[dict[str, Any]] = [
     {
         "command": "help",
         "description": "Получить справку",
@@ -105,50 +106,56 @@ COMMAND_DEFINITIONS: List[Dict[str, Any]] = [
 ]
 
 
-def add_command(commands: List[Dict[str, Any]],
-                command_name: str,
-                description: str,
-                flag: bool,
-                private_chat: bool = True,
-                group_chat: bool = True,
-                visible_in_help: bool = True) -> None:
+def add_command(
+    commands: list[dict[str, Any]],
+    command_name: str,
+    description: str,
+    flag: bool,
+    private_chat: bool = True,
+    group_chat: bool = True,
+    visible_in_help: bool = True,
+) -> None:
     if flag:
-        commands.append({
-            "command": BotCommand(command=command_name,
-                                  description=description),
-            "private_chat": private_chat,
-            "group_chat": group_chat,
-            "visible_in_help": visible_in_help,
-        })
+        commands.append(
+            {
+                "command": BotCommand(command=command_name, description=description),
+                "private_chat": private_chat,
+                "group_chat": group_chat,
+                "visible_in_help": visible_in_help,
+            }
+        )
 
 
-def get_all_commands() -> List[Dict[str, Any]]:
-    commands: List[Dict[str, Any]] = []
+def get_all_commands() -> list[dict[str, Any]]:
+    commands: list[dict[str, Any]] = []
     for cmd_def in COMMAND_DEFINITIONS:
-        add_command(commands,
-                    command_name=cmd_def["command"],
-                    description=cmd_def["description"],
-                    flag=cmd_def["flag"],
-                    private_chat=cmd_def["private_chat"],
-                    group_chat=cmd_def["group_chat"],
-                    visible_in_help=cmd_def["visible_in_help"])
+        add_command(
+            commands,
+            command_name=cmd_def["command"],
+            description=cmd_def["description"],
+            flag=cmd_def["flag"],
+            private_chat=cmd_def["private_chat"],
+            group_chat=cmd_def["group_chat"],
+            visible_in_help=cmd_def["visible_in_help"],
+        )
     return commands
 
 
-def get_commands_for_scope(commands: List[Dict[str, Any]],
-                           scope: str) -> List[BotCommand]:
-    return [cmd["command"] for cmd in commands if cmd.get(scope)
-            and cmd.get("visible_in_help")]
+def get_commands_for_scope(
+    commands: list[dict[str, Any]], scope: str
+) -> list[BotCommand]:
+    return [
+        cmd["command"]
+        for cmd in commands
+        if cmd.get(scope) and cmd.get("visible_in_help")
+    ]
 
 
 async def set_bot_commands(bot: Bot) -> None:
     commands = get_all_commands()
-    from aiogram.types import (BotCommandScopeDefault,
-                               BotCommandScopeAllGroupChats)
-    private_commands = get_commands_for_scope(commands,
-                                              "private_chat")
-    await bot.set_my_commands(private_commands,
-                              scope=BotCommandScopeDefault())
+    from aiogram.types import BotCommandScopeAllGroupChats, BotCommandScopeDefault
+
+    private_commands = get_commands_for_scope(commands, "private_chat")
+    await bot.set_my_commands(private_commands, scope=BotCommandScopeDefault())
     group_commands = get_commands_for_scope(commands, "group_chat")
-    await bot.set_my_commands(group_commands,
-                              scope=BotCommandScopeAllGroupChats())
+    await bot.set_my_commands(group_commands, scope=BotCommandScopeAllGroupChats())

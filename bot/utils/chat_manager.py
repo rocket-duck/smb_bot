@@ -25,9 +25,7 @@ async def add_chat_async(chat_id: int, chat_title: str, added_by: str) -> None:
                     await session.commit()
                     logger.info(f"Чат {chat_id} восстановлен.")
                 else:
-                    logger.debug(
-                        f"Чат {chat_id} уже существует в базе данных."
-                    )
+                    logger.debug(f"Чат {chat_id} уже существует в базе данных.")
                 return
 
             new_chat = Chat(
@@ -60,9 +58,7 @@ async def remove_chat_async(chat_id: int, removed_by: str) -> bool:
                 logger.debug(f"Чат {chat_id} не найден в базе данных.")
                 return False
             if chat.deleted:
-                logger.debug(
-                    f"Чат {chat_id} ({chat.title}) уже помечен как удалённый."
-                )
+                logger.debug(f"Чат {chat_id} ({chat.title}) уже помечен как удалённый.")
                 return False
 
             chat.deleted = True

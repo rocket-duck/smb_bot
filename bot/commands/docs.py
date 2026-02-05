@@ -1,4 +1,5 @@
 import logging
+
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
@@ -13,7 +14,9 @@ logger = logging.getLogger(__name__)
 async def handle_docs(message: Message, state: FSMContext) -> None:
     """Обрабатывает команду /docs."""
     await state.clear()
-    user_id = message.from_user.id if message.from_user and message.from_user.id else None
+    user_id = (
+        message.from_user.id if message.from_user and message.from_user.id else None
+    )
     if user_id is None:
         logger.error("Ошибка: невозможно определить идентификатор пользователя.")
         await message.answer("Ошибка: не удалось определить ваш идентификатор.")

@@ -1,5 +1,6 @@
-from aiogram import types
 from pathlib import Path
+
+from aiogram import types
 from aiogram.types import FSInputFile
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -29,17 +30,15 @@ def is_bot_mentioned(message: types.Message, bot_username: str) -> bool:
     normalized_username = bot_username.lower()
     for entity in message.entities:
         if entity.type == "mention":
-            mention_text = message.text[
-                entity.offset: entity.offset + entity.length
-            ]
+            mention_text = message.text[entity.offset : entity.offset + entity.length]
             if mention_text.lower() == f"@{normalized_username}":
                 return True
     return False
 
 
-async def handle_bot_tag(message: types.Message,
-                         bot_username: str,
-                         bot_tag_enable: bool) -> None:
+async def handle_bot_tag(
+    message: types.Message, bot_username: str, bot_tag_enable: bool
+) -> None:
     """
     Если сообщение содержит упоминание бота
     (например, @bot_username) и включена обработка тегов,

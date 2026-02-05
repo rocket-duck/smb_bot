@@ -22,9 +22,7 @@ def _now_utc():
 async def update_participant(message) -> None:
     # Если сообщение пришло из личного чата, не добавляем участника
     if message.chat.type == "private":
-        logging.debug(
-            "Сообщение из личного чата: участник не добавляется в таблицу."
-        )
+        logging.debug("Сообщение из личного чата: участник не добавляется в таблицу.")
         return
 
     user = message.from_user
@@ -51,17 +49,13 @@ async def update_participant(message) -> None:
                 )
                 session.add(participant)
                 await session.commit()
-                logging.info(
-                    f"Добавлен новый участник: {user.full_name} (ID: {user.id}) в чат {chat_id}"
-                )
+                logging.info("Добавлен новый участник в чат %s.", chat_id)
             else:
                 # Обновляем время последней активности и название чата (на случай, если оно изменилось)
                 participant.last_active = _now_utc()
                 participant.chat_title = message.chat.title or ""
                 await session.commit()
-                logging.debug(
-                    f"Обновлена активность участника: {user.full_name} (ID: {user.id}) в чат {chat_id}"
-                )
+                logging.debug("Обновлена активность участника в чате %s.", chat_id)
         except Exception as e:
             await session.rollback()
             logging.error(f"Ошибка при обновлении участника: {e}")

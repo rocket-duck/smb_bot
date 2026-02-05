@@ -17,7 +17,4 @@ def test_format_declension(wins, expected):
 
 
 def test_format_winner_mention():
-    assert (
-        format_winner_mention("1", "User")
-        == '<a href="tg://user?id=1">User</a>'
-    )
+    assert format_winner_mention("1", "User") == '<a href="tg://user?id=1">User</a>'

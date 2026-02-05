@@ -1,4 +1,5 @@
 import logging
+
 from aiogram.types import Message
 from sqlalchemy import select
 
@@ -31,9 +32,7 @@ def format_stats(message: Message, stats: list) -> str:
     for stat in stats:
         username = f" (@{stat.username})" if stat.username else ""
         declension = format_declension(stat.wins)
-        stat_lines.append(
-            f"• {stat.full_name}{username}: {stat.wins} {declension}"
-        )
+        stat_lines.append(f"• {stat.full_name}{username}: {stat.wins} {declension}")
     return "\n".join(stat_lines)
 
 

@@ -1,12 +1,13 @@
-import pytest
-import pytest_asyncio
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
-from sqlalchemy import select
 from datetime import datetime
 
-from bot.models import Chat, LastWinner, WinnerStats, Participant
-from bot.utils import chat_manager, game_engine, participants
+import pytest
+import pytest_asyncio
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+
 from bot.database import Base
+from bot.models import Chat, LastWinner, Participant, WinnerStats
+from bot.utils import chat_manager, game_engine, participants
 
 
 @pytest_asyncio.fixture

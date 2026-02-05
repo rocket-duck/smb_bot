@@ -1,7 +1,10 @@
 import logging
 import re
-from aiogram.types import Message, FSInputFile
 from pathlib import Path
+
+from aiogram.types import FSInputFile, Message
+
+from bot.config.settings import get_settings
 from bot.dicts import who_request_dict
 
 # Путь к папке с изображениями
@@ -9,9 +12,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 IMG_DIR = BASE_DIR / "utils" / "img"
 
 
-async def handle_who_request(message: Message,
-                             who_request_enable: bool,
-                             force_loh_image: bool = False):
+async def handle_who_request(
+    message: Message, who_request_enable: bool, force_loh_image: bool = False
+):
     """
     Обрабатывает сообщения, начинающиеся с заданных фраз.
     Если сообщение соответствует, отправляет фиксированное изображение в ответ.
@@ -19,6 +22,11 @@ async def handle_who_request(message: Message,
     :param who_request_enable: Флаг, разрешающий выполнение функции.
     """
     if not who_request_enable:
+        return
+    settings = get_settings()
+    if not settings.nfsw_chat_ids:
+        return
+    if message.chat and message.chat.id not in settings.nfsw_chat_ids:
         return
 
     # Проверяем, есть ли текст в сообщении
@@ -28,11 +36,16 @@ async def handle_who_request(message: Message,
 
     # Проверяем, содержит ли сообщение одну из триггерных фраз как отдельное слово/фразу
     message_text = message.text.lower()
-    if not any(re.search(rf"\b{re.escape(trigger)}\b", message_text) for trigger in who_request_dict.TRIGGERS):
+    if not any(
+        re.search(rf"\b{re.escape(trigger)}\b", message_text)
+        for trigger in who_request_dict.TRIGGERS
+    ):
         return
 
-    logging.debug(f"Обнаружен запрос '{message_text}' "
-                  f"с одним из триггеров: {who_request_dict.TRIGGERS}")
+    logging.debug(
+        f"Обнаружен запрос '{message_text}' "
+        f"с одним из триггеров: {who_request_dict.TRIGGERS}"
+    )
 
     image_name = "loh.jpg" if force_loh_image else "a_kto_cenz.png"
     image_path = IMG_DIR / image_name
@@ -46,5 +59,4 @@ async def handle_who_request(message: Message,
     photo = FSInputFile(image_path)
 
     # Отправляем изображение
-    await message.answer_photo(photo=photo,
-                               reply_to_message_id=message.message_id)
+    await message.answer_photo(photo=photo, reply_to_message_id=message.message_id)

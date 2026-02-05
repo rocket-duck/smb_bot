@@ -1,6 +1,8 @@
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
-from bot.dicts.links_dict import LINKS
 import logging
+
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+
+from bot.dicts.links_dict import LINKS
 
 
 def create_main_menu(user_id: int):
@@ -25,11 +27,13 @@ def create_main_menu(user_id: int):
             # Если есть ключ (в том числе с подразделами) –
             # создаём кнопку с callback_data
             callback_data = f"menu:{user_id}:{key}"
-            buttons.append([InlineKeyboardButton(text=section,
-                                                 callback_data=callback_data)])
+            buttons.append(
+                [InlineKeyboardButton(text=section, callback_data=callback_data)]
+            )
         else:
-            logging.warning(f"Пропущен раздел '{section}' "
-                            f"из-за некорректной структуры.")
+            logging.warning(
+                f"Пропущен раздел '{section}' " f"из-за некорректной структуры."
+            )
     keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
     return keyboard, "Главное меню"
 
@@ -47,8 +51,9 @@ def create_submenu(menu_key: str, user_id: int):
 
     # Поиск данных для подменю по ключу
     data = next((v for k, v in LINKS.items() if v.get("key") == menu_key), None)
-    section_name = next((k for k, v in LINKS.items()
-                         if v.get("key") == menu_key), menu_key)
+    section_name = next(
+        (k for k, v in LINKS.items() if v.get("key") == menu_key), menu_key
+    )
     if not data:
         logging.error(f"Раздел '{menu_key}' отсутствует в LINKS.")
         return InlineKeyboardMarkup(inline_keyboard=[]), section_name
@@ -62,15 +67,18 @@ def create_submenu(menu_key: str, user_id: int):
             buttons.append([InlineKeyboardButton(text=subsection, url=url)])
         elif key:
             callback_data = f"menu:{user_id}:{key}"
-            buttons.append([InlineKeyboardButton(text=subsection,
-                                                 callback_data=callback_data)])
+            buttons.append(
+                [InlineKeyboardButton(text=subsection, callback_data=callback_data)]
+            )
         else:
-            logging.warning(f"Пропущен подраздел '{subsection}' "
-                            f"из-за некорректной структуры.")
+            logging.warning(
+                f"Пропущен подраздел '{subsection}' " f"из-за некорректной структуры."
+            )
 
     # Добавляем кнопку "Назад" для возврата в главное меню
-    buttons.append([InlineKeyboardButton(text="⬅️ Назад",
-                                         callback_data=f"menu:{user_id}:main")])
+    buttons.append(
+        [InlineKeyboardButton(text="⬅️ Назад", callback_data=f"menu:{user_id}:main")]
+    )
     keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
     return keyboard, section_name
 

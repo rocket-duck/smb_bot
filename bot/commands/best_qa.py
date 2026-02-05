@@ -3,12 +3,12 @@ from aiogram.types import Message
 from bot.config.flags import BEST_QA_ENABLE
 from bot.utils.command_registry import command
 from bot.utils.game_engine import (
-    update_last_winner,
-    update_winner_stats,
-    get_random_participant,
-    is_new_day,
     format_winner_mention,
     get_last_winner,
+    get_random_participant,
+    is_new_day,
+    update_last_winner,
+    update_winner_stats,
 )
 
 
@@ -22,9 +22,7 @@ async def handle_best_qa(message: Message) -> None:
     if not await is_new_day(chat_id):
         last = await get_last_winner(chat_id)
         if last:
-            mention = format_winner_mention(
-                last.winner_user_id, last.winner_full_name
-            )
+            mention = format_winner_mention(last.winner_user_id, last.winner_full_name)
             await message.answer(
                 f"Сегодня лучший тестировщик уже выбран: {mention} 🎉",
                 parse_mode="HTML",

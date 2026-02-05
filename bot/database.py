@@ -1,4 +1,3 @@
-from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     async_sessionmaker,
@@ -6,9 +5,12 @@ from sqlalchemy.ext.asyncio import (
 )
 from sqlalchemy.orm import declarative_base
 
+from bot.config.settings import get_settings
+
+settings = get_settings()
 
 # Здесь мы используем SQLite и сохраняем базу в файле data/bot.db
-DATABASE_URL = "sqlite+aiosqlite:///data/bot.db"
+DATABASE_URL = settings.database_url
 
 engine: AsyncEngine = create_async_engine(
     DATABASE_URL, connect_args={"check_same_thread": False}
@@ -23,11 +25,3 @@ async def init_db():
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-
-        # Simple manual migration for existing databases without new columns.
-        result = await conn.execute(text("PRAGMA table_info(participants)"))
-        columns = [row[1] for row in result]
-        if "last_active" not in columns:
-            await conn.execute(
-                text("ALTER TABLE participants ADD COLUMN last_active DATETIME")
-            )

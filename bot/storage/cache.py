@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-from typing import Dict, Tuple
 
 
 class AsyncTTLCache:
@@ -27,8 +26,8 @@ class AsyncTTLCache:
     """
 
     def __init__(self, cleanup_interval: float = 60.0) -> None:
-        self._recent_links: Dict[Tuple[int, str], float] = {}
-        self._reactions: Dict[Tuple[int, int], Dict[str, float]] = {}
+        self._recent_links: dict[tuple[int, str], float] = {}
+        self._reactions: dict[tuple[int, int], dict[str, float]] = {}
         self._lock = asyncio.Lock()
         self._cleanup_interval = cleanup_interval
         self._cleanup_task: asyncio.Task | None = None
@@ -95,7 +94,9 @@ class AsyncTTLCache:
 
     # ------------------------------------------------------------------
     # Reaction counts operations
-    async def init_reaction(self, chat_id: int, message_id: int, ttl_seconds: int) -> None:
+    async def init_reaction(
+        self, chat_id: int, message_id: int, ttl_seconds: int
+    ) -> None:
         self._ensure_cleanup()
         loop = asyncio.get_running_loop()
         expires_at = loop.time() + ttl_seconds
@@ -108,7 +109,7 @@ class AsyncTTLCache:
 
     async def increment_reaction(
         self, chat_id: int, message_id: int, reaction: str, ttl_seconds: int
-    ) -> Tuple[int, int]:
+    ) -> tuple[int, int]:
         self._ensure_cleanup()
         loop = asyncio.get_running_loop()
         now = loop.time()

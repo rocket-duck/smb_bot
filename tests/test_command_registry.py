@@ -1,7 +1,7 @@
-import pytest
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
+import pytest
 from aiogram.filters import Command
 
 from bot.utils import command_registry
@@ -16,9 +16,7 @@ async def test_command_registered_and_exec():
         called["value"] = True
         await message.answer("ok")
 
-    message = SimpleNamespace(
-        from_user=SimpleNamespace(id=1), answer=AsyncMock()
-    )
+    message = SimpleNamespace(from_user=SimpleNamespace(id=1), answer=AsyncMock())
     decorated = command_registry.command("test")(handler)
 
     assert command_registry.COMMAND_REGISTRY[-1]["name"] == "test"
@@ -35,9 +33,7 @@ async def test_command_flag_false():
     async def handler(message):
         called["value"] = True
 
-    message = SimpleNamespace(
-        from_user=SimpleNamespace(id=1), answer=AsyncMock()
-    )
+    message = SimpleNamespace(from_user=SimpleNamespace(id=1), answer=AsyncMock())
     decorated = command_registry.command("test", flag=False)(handler)
 
     await decorated(message)
@@ -65,9 +61,7 @@ def test_command_router_registration():
     assert command_registry.COMMAND_REGISTRY[-1]["router"] is mock_router
     assert len(command_registry.COMMAND_REGISTRY) == start_len + 1
 
-    command_registry.COMMAND_REGISTRY[:] = command_registry.COMMAND_REGISTRY[
-        :start_len
-    ]
+    command_registry.COMMAND_REGISTRY[:] = command_registry.COMMAND_REGISTRY[:start_len]
 
 
 @pytest.mark.asyncio
@@ -78,9 +72,7 @@ async def test_command_ignores_extra_kwargs():
     async def handler(message):
         called["value"] = True
 
-    message = SimpleNamespace(
-        from_user=SimpleNamespace(id=1), answer=AsyncMock()
-    )
+    message = SimpleNamespace(from_user=SimpleNamespace(id=1), answer=AsyncMock())
     decorated = command_registry.command("test")(handler)
 
     # Обработчик должен отработать даже при передаче дополнительных
@@ -97,9 +89,7 @@ async def test_command_removes_dispatcher_even_if_handler_accepts_kwargs():
     async def handler(message, **kw):
         received.update(kw)
 
-    message = SimpleNamespace(
-        from_user=SimpleNamespace(id=1), answer=AsyncMock()
-    )
+    message = SimpleNamespace(from_user=SimpleNamespace(id=1), answer=AsyncMock())
     decorated = command_registry.command("test")(handler)
 
     await decorated(message, dispatcher="disp", bots="bot")

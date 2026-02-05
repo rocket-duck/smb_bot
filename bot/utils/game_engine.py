@@ -1,12 +1,12 @@
-import random
 import logging
-from datetime import datetime, timezone
+import random
+from datetime import UTC, datetime
 
 from aiogram.utils.markdown import hlink
 from sqlalchemy import select
 
 from bot.database import SessionLocal
-from bot.models import LastWinner, WinnerStats, Participant
+from bot.models import LastWinner, Participant, WinnerStats
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +25,7 @@ async def update_last_winner(
                 select(LastWinner).filter(LastWinner.chat_id == chat_id)
             )
             last = result.scalars().first()
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
             if last is None:
                 last = LastWinner(
                     chat_id=chat_id,
@@ -98,7 +98,7 @@ async def is_new_day(chat_id: str) -> bool:
     last = await get_last_winner(chat_id)
     if not last:
         return True
-    return datetime.now(timezone.utc).date() > last.last_datetime.date()
+    return datetime.now(UTC).date() > last.last_datetime.date()
 
 
 async def get_random_participant(chat_id: str):
@@ -117,7 +117,7 @@ def format_declension(wins: int) -> str:
     """Возвращает правильную форму слова 'победа' в зависимости от числа wins."""
     if wins % 10 == 1 and wins % 100 != 11:
         return "победа"
-    elif wins % 10 in [2, 3, 4] and not (wins % 100 in [12, 13, 14]):
+    elif wins % 10 in [2, 3, 4] and wins % 100 not in [12, 13, 14]:
         return "победы"
     else:
         return "побед"

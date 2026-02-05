@@ -7,10 +7,10 @@ dist/
 .coverage
 coverage.xml
 .pytest_cache/
+.ruff_cache/
+.mypy_cache/
 *.cast
 .idea/
 data/
-.env
-bot/.env
 .vscode/
 .continue/
