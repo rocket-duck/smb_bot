@@ -13,7 +13,11 @@ IMG_DIR = BASE_DIR / "utils" / "img"
 
 
 async def handle_who_request(
-    message: Message, who_request_enable: bool, force_loh_image: bool = False
+    message: Message,
+    who_request_enable: bool,
+    force_bestoloch_enable: bool = False,
+    user_roll: int | None = None,
+    bot_roll: int | None = None,
 ):
     """
     Обрабатывает сообщения, начинающиеся с заданных фраз.
@@ -34,12 +38,8 @@ async def handle_who_request(
         logging.debug("Сообщение не содержит текста. Пропускаем обработку.")
         return
 
-    # Проверяем, содержит ли сообщение одну из триггерных фраз как отдельное слово/фразу
     message_text = message.text.lower()
-    if not any(
-        re.search(rf"\b{re.escape(trigger)}\b", message_text)
-        for trigger in who_request_dict.TRIGGERS
-    ):
+    if not is_who_request_trigger(message_text):
         return
 
     logging.debug(
@@ -47,7 +47,7 @@ async def handle_who_request(
         f"с одним из триггеров: {who_request_dict.TRIGGERS}"
     )
 
-    image_name = "loh.jpg" if force_loh_image else "a_kto_cenz.png"
+    image_name = "bestoloch.jpg" if force_bestoloch_enable else "a_kto.jpg"
     image_path = IMG_DIR / image_name
     if not image_path.exists():
         logging.warning(f"Изображение '{image_path}' не найдено.")
@@ -59,4 +59,16 @@ async def handle_who_request(
     photo = FSInputFile(image_path)
 
     # Отправляем изображение
-    await message.answer_photo(photo=photo, reply_to_message_id=message.message_id)
+    caption = None
+    if user_roll is not None and bot_roll is not None:
+        caption = f"roll 1d20\nUser roll: {user_roll}\nBot roll: {bot_roll}"
+    await message.answer_photo(
+        photo=photo, caption=caption, reply_to_message_id=message.message_id
+    )
+
+
+def is_who_request_trigger(text: str) -> bool:
+    return any(
+        re.search(rf"\b{re.escape(trigger)}\b", text)
+        for trigger in who_request_dict.TRIGGERS
+    )

@@ -15,7 +15,7 @@ from bot.messages.bot_tag import handle_bot_tag
 from bot.messages.help_epa_message import get_auth_issue_response
 from bot.messages.maslina import handle_maslina
 from bot.messages.message_parse import find_links_by_keyword, parse_error_codes
-from bot.messages.who_request import handle_who_request
+from bot.messages.who_request import handle_who_request, is_who_request_trigger
 from bot.storage.cache import cache
 from bot.utils.participants import update_participant
 
@@ -71,17 +71,39 @@ async def handle_message(message: Message, state: FSMContext) -> None:
 
     # Бросаем два кубика d20: бот и пользователь
     if flag.WHO_REQUEST_ENABLE:
-        bot_roll = random.randint(1, 20)
-        user_roll = random.randint(1, 20)
-        logging.debug(f"Кубики who_request: пользователь={user_roll}, бот={bot_roll}")
-        if user_roll == 1:
-            await handle_who_request(
-                message, flag.WHO_REQUEST_ENABLE, force_loh_image=True
-            )
-        elif user_roll == 20 or (user_roll > 1 and user_roll >= bot_roll):
-            await handle_who_request(message, flag.WHO_REQUEST_ENABLE)
+        if not message.text or not is_who_request_trigger(message.text.lower()):
+            logging.debug("who_request: триггер не найден, бросок кубиков не нужен")
         else:
-            logging.debug("Условие бросков кубиков не выполнено")
+            bot_roll = random.randint(1, 20)
+            user_roll = random.randint(1, 20)
+            logging.debug(
+                f"Кубики who_request: пользователь={user_roll}, бот={bot_roll}"
+            )
+            if user_roll == 1:
+                if flag.FORCE_BESTOLOCH_ENABLE:
+                    await handle_who_request(
+                        message,
+                        flag.WHO_REQUEST_ENABLE,
+                        force_bestoloch_enable=True,
+                        user_roll=user_roll,
+                        bot_roll=bot_roll,
+                    )
+                else:
+                    await handle_who_request(
+                        message,
+                        flag.WHO_REQUEST_ENABLE,
+                        user_roll=user_roll,
+                        bot_roll=bot_roll,
+                    )
+            elif user_roll == 20 or (user_roll > 1 and user_roll >= bot_roll):
+                await handle_who_request(
+                    message,
+                    flag.WHO_REQUEST_ENABLE,
+                    user_roll=user_roll,
+                    bot_roll=bot_roll,
+                )
+            else:
+                logging.debug("Условие бросков кубиков не выполнено")
     else:
         logging.debug("Флаг WHO_REQUEST_ENABLE выключен, пропускаем who_request")
 
