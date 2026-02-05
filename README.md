@@ -35,7 +35,17 @@ docker compose up --build
 - `SENTRY_PROFILES_SAMPLE_RATE` — доля профайлинга (0.0 по умолчанию)
 - `SENTRY_RELEASE` — версия релиза для Sentry
 
-Переменные задаются в `docker-compose.yml` в секции `environment`.
+Используется основной `docker-compose.yml`.
+Переменные задаются через `environment` и подставляются из окружения хоста.
+Пример запуска:
+
+```
+export BOT_USERNAME="smb_mbbiz_bot"
+export API_TOKEN="***"
+export OPENAI_API_KEY="***"
+export NFSW_CHAT_ID="-1001783443049"
+docker compose up -d
+```
 
 ## Команды бота
 

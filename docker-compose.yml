@@ -10,10 +10,10 @@ services:
       NFSW_CHAT_ID: "${NFSW_CHAT_ID}"
       LOG_LEVEL: "${LOG_LEVEL:-INFO}"
       DATABASE_URL: "${DATABASE_URL:-sqlite+aiosqlite:///data/bot.db}"
-      SENTRY_DSN: "${SENTRY_DSN}"
+      SENTRY_DSN: "${SENTRY_DSN:-}"
       SENTRY_ENVIRONMENT: "${SENTRY_ENVIRONMENT:-development}"
       SENTRY_TRACES_SAMPLE_RATE: "${SENTRY_TRACES_SAMPLE_RATE:-0.0}"
       SENTRY_PROFILES_SAMPLE_RATE: "${SENTRY_PROFILES_SAMPLE_RATE:-0.0}"
-      SENTRY_RELEASE: "${SENTRY_RELEASE}"
+      SENTRY_RELEASE: "${SENTRY_RELEASE:-}"
     volumes:
       - ./data:/app/data
