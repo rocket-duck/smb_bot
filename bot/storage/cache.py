@@ -28,6 +28,7 @@ class AsyncTTLCache:
     def __init__(self, cleanup_interval: float = 60.0) -> None:
         self._recent_links: dict[tuple[int, str], float] = {}
         self._reactions: dict[tuple[int, int], dict[str, float]] = {}
+        self._cooldowns: dict[tuple[str, int], float] = {}
         self._lock = asyncio.Lock()
         self._cleanup_interval = cleanup_interval
         self._cleanup_task: asyncio.Task | None = None
@@ -60,6 +61,9 @@ class AsyncTTLCache:
                 key: val
                 for key, val in self._reactions.items()
                 if val["expires_at"] > now
+            }
+            self._cooldowns = {
+                key: exp for key, exp in self._cooldowns.items() if exp > now
             }
 
     async def close(self) -> None:
@@ -148,6 +152,28 @@ class AsyncTTLCache:
         self._ensure_cleanup()
         async with self._lock:
             self._reactions.pop((chat_id, message_id), None)
+
+    # ------------------------------------------------------------------
+    # Cooldown operations
+    async def set_cooldown(self, key: str, chat_id: int, ttl_seconds: int) -> None:
+        self._ensure_cleanup()
+        loop = asyncio.get_running_loop()
+        expires_at = loop.time() + ttl_seconds
+        async with self._lock:
+            self._cooldowns[(key, chat_id)] = expires_at
+
+    async def is_cooldown_active(self, key: str, chat_id: int) -> bool:
+        self._ensure_cleanup()
+        loop = asyncio.get_running_loop()
+        now = loop.time()
+        async with self._lock:
+            expires_at = self._cooldowns.get((key, chat_id))
+            if not expires_at:
+                return False
+            if expires_at < now:
+                del self._cooldowns[(key, chat_id)]
+                return False
+            return True
 
 
 # Default cache instance used throughout the project

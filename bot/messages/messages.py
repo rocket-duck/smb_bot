@@ -20,6 +20,8 @@ from bot.storage.cache import cache
 from bot.utils.participants import update_participant
 
 REACTION_TTL_SECONDS = 24 * 60 * 60
+WHO_REQUEST_COOLDOWN_SECONDS = 60 * 60
+WHO_REQUEST_COOLDOWN_KEY = "who_request"
 settings = get_settings()
 
 
@@ -73,14 +75,19 @@ async def handle_message(message: Message, state: FSMContext) -> None:
     if flag.WHO_REQUEST_ENABLE:
         if not message.text or not is_who_request_trigger(message.text.lower()):
             logging.debug("who_request: триггер не найден, бросок кубиков не нужен")
+        elif message.chat and await cache.is_cooldown_active(
+            WHO_REQUEST_COOLDOWN_KEY, message.chat.id
+        ):
+            logging.debug("who_request: активен таймаут, бросок кубиков пропущен")
         else:
             bot_roll = random.randint(1, 20)
             user_roll = random.randint(1, 20)
             logging.debug(
                 f"Кубики who_request: пользователь={user_roll}, бот={bot_roll}"
             )
+            sent = False
             if user_roll == 1:
-                await handle_who_request(
+                sent = await handle_who_request(
                     message,
                     flag.WHO_REQUEST_ENABLE,
                     force_image_name="loh.jpg",
@@ -88,7 +95,7 @@ async def handle_message(message: Message, state: FSMContext) -> None:
                     bot_roll=bot_roll,
                 )
             elif bot_roll == 1:
-                await handle_who_request(
+                sent = await handle_who_request(
                     message,
                     flag.WHO_REQUEST_ENABLE,
                     force_image_name="bot_one.jpg",
@@ -96,7 +103,7 @@ async def handle_message(message: Message, state: FSMContext) -> None:
                     bot_roll=bot_roll,
                 )
             elif user_roll == 20 or (user_roll > 1 and user_roll >= bot_roll):
-                await handle_who_request(
+                sent = await handle_who_request(
                     message,
                     flag.WHO_REQUEST_ENABLE,
                     user_roll=user_roll,
@@ -104,6 +111,12 @@ async def handle_message(message: Message, state: FSMContext) -> None:
                 )
             else:
                 logging.debug("Условие бросков кубиков не выполнено")
+            if sent and message.chat:
+                await cache.set_cooldown(
+                    WHO_REQUEST_COOLDOWN_KEY,
+                    message.chat.id,
+                    WHO_REQUEST_COOLDOWN_SECONDS,
+                )
     else:
         logging.debug("Флаг WHO_REQUEST_ENABLE выключен, пропускаем who_request")
 

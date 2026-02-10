@@ -18,29 +18,30 @@ async def handle_who_request(
     force_image_name: str | None = None,
     user_roll: int | None = None,
     bot_roll: int | None = None,
-):
+) -> bool:
     """
     Обрабатывает сообщения, начинающиеся с заданных фраз.
     Если сообщение соответствует, отправляет фиксированное изображение в ответ.
     :param message: Сообщение от пользователя
     :param who_request_enable: Флаг, разрешающий выполнение функции.
+    :return: True, если изображение было отправлено.
     """
     if not who_request_enable:
-        return
+        return False
     settings = get_settings()
     if not settings.nfsw_chat_ids:
-        return
+        return False
     if message.chat and message.chat.id not in settings.nfsw_chat_ids:
-        return
+        return False
 
     # Проверяем, есть ли текст в сообщении
     if not message.text:
         logging.debug("Сообщение не содержит текста. Пропускаем обработку.")
-        return
+        return False
 
     message_text = message.text.lower()
     if not is_who_request_trigger(message_text):
-        return
+        return False
 
     logging.debug(
         f"Обнаружен запрос '{message_text}' "
@@ -51,7 +52,7 @@ async def handle_who_request(
     image_path = IMG_DIR / image_name
     if not image_path.exists():
         logging.warning(f"Изображение '{image_path}' не найдено.")
-        return
+        return False
 
     logging.debug(f"Отправка изображения: {image_path}")
 
@@ -65,6 +66,7 @@ async def handle_who_request(
     await message.answer_photo(
         photo=photo, caption=caption, reply_to_message_id=message.message_id
     )
+    return True
 
 
 def is_who_request_trigger(text: str) -> bool:
