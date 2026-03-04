@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 
 from aiogram.utils.markdown import hlink
 from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
 
 from bot.database import SessionLocal
 from bot.models import LastWinner, Participant, WinnerStats
@@ -12,9 +13,9 @@ logger = logging.getLogger(__name__)
 
 
 async def update_last_winner(
-    chat_id: str,
+    chat_id: int,
     chat_title: str,
-    user_id: str,
+    user_id: int,
     full_name: str,
     username: str,
 ) -> None:
@@ -43,16 +44,16 @@ async def update_last_winner(
                 last.winner_full_name = full_name
                 last.winner_username = username or ""
             await session.commit()
-        except Exception as e:
+        except SQLAlchemyError as e:
             await session.rollback()
             logger.error("Ошибка обновления последнего победителя: %s", e)
             raise
 
 
 async def update_winner_stats(
-    chat_id: str,
+    chat_id: int,
     chat_title: str,
-    user_id: str,
+    user_id: int,
     full_name: str,
     username: str,
 ) -> None:
@@ -78,7 +79,7 @@ async def update_winner_stats(
             else:
                 stats.wins += 1
             await session.commit()
-        except Exception as e:
+        except SQLAlchemyError as e:
             await session.rollback()
             logger.error("Ошибка обновления статистики побед: %s", e)
             raise
@@ -123,6 +124,6 @@ def format_declension(wins: int) -> str:
         return "побед"
 
 
-def format_winner_mention(user_id: str, full_name: str) -> str:
+def format_winner_mention(user_id: int, full_name: str) -> str:
     """Формирует строку для упоминания пользователя."""
     return hlink(full_name, f"tg://user?id={user_id}")

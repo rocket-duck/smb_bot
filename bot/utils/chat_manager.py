@@ -2,6 +2,7 @@ import logging
 from datetime import UTC, datetime
 
 from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
 
 from bot.database import SessionLocal
 from bot.models import Chat
@@ -14,7 +15,7 @@ async def add_chat_async(chat_id: int, chat_title: str, added_by: str) -> None:
     async with SessionLocal() as session:
         try:
             result = await session.execute(
-                select(Chat).filter(Chat.chat_id == str(chat_id))
+                select(Chat).filter(Chat.chat_id == chat_id)
             )
             existing_chat = result.scalars().first()
             if existing_chat:
@@ -23,13 +24,13 @@ async def add_chat_async(chat_id: int, chat_title: str, added_by: str) -> None:
                     existing_chat.deleted_by = None
                     existing_chat.deleted_at = None
                     await session.commit()
-                    logger.info(f"Чат {chat_id} восстановлен.")
+                    logger.info("Чат %s восстановлен.", chat_id)
                 else:
-                    logger.debug(f"Чат {chat_id} уже существует в базе данных.")
+                    logger.debug("Чат %s уже существует в базе данных.", chat_id)
                 return
 
             new_chat = Chat(
-                chat_id=str(chat_id),
+                chat_id=chat_id,
                 title=chat_title,
                 added_by=added_by,
                 added_at=datetime.now(UTC),
@@ -38,11 +39,14 @@ async def add_chat_async(chat_id: int, chat_title: str, added_by: str) -> None:
             session.add(new_chat)
             await session.commit()
             logger.info(
-                f"Чат {chat_id} ({chat_title}) добавлен в базу данных пользователем {added_by}."
+                "Чат %s (%s) добавлен в базу данных пользователем %s.",
+                chat_id,
+                chat_title,
+                added_by,
             )
-        except Exception as e:
+        except SQLAlchemyError as e:
             await session.rollback()
-            logger.error(f"Ошибка при добавлении чата {chat_id}: {e}")
+            logger.error("Ошибка при добавлении чата %s: %s", chat_id, e)
             raise
 
 
@@ -51,14 +55,14 @@ async def remove_chat_async(chat_id: int, removed_by: str) -> bool:
     async with SessionLocal() as session:
         try:
             result = await session.execute(
-                select(Chat).filter(Chat.chat_id == str(chat_id))
+                select(Chat).filter(Chat.chat_id == chat_id)
             )
             chat = result.scalars().first()
             if not chat:
-                logger.debug(f"Чат {chat_id} не найден в базе данных.")
+                logger.debug("Чат %s не найден в базе данных.", chat_id)
                 return False
             if chat.deleted:
-                logger.debug(f"Чат {chat_id} ({chat.title}) уже помечен как удалённый.")
+                logger.debug("Чат %s (%s) уже помечен как удалённый.", chat_id, chat.title)
                 return False
 
             chat.deleted = True
@@ -66,12 +70,15 @@ async def remove_chat_async(chat_id: int, removed_by: str) -> bool:
             chat.deleted_at = datetime.now(UTC)
             await session.commit()
             logger.info(
-                f"Чат {chat_id} ({chat.title}) помечен как удалённый пользователем {removed_by}."
+                "Чат %s (%s) помечен как удалённый пользователем %s.",
+                chat_id,
+                chat.title,
+                removed_by,
             )
             return True
-        except Exception as e:
+        except SQLAlchemyError as e:
             await session.rollback()
-            logger.error(f"Ошибка при удалении чата {chat_id}: {e}")
+            logger.error("Ошибка при удалении чата %s: %s", chat_id, e)
             return False
 
 
@@ -80,16 +87,10 @@ async def get_all_chats_async():
         try:
             result = await session.execute(select(Chat))
             chats = result.scalars().all()
-            result_list = []
-            for chat in chats:
-                result_list.append(
-                    {
-                        "chat_id": chat.chat_id,
-                        "title": chat.title,
-                        "deleted": chat.deleted,
-                    }
-                )
-            return result_list
-        except Exception as e:
-            logger.error(f"Ошибка при получении списка чатов: {e}")
+            return [
+                {"chat_id": chat.chat_id, "title": chat.title, "deleted": chat.deleted}
+                for chat in chats
+            ]
+        except SQLAlchemyError as e:
+            logger.error("Ошибка при получении списка чатов: %s", e)
             return []

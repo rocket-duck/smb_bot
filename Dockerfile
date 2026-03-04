@@ -14,4 +14,4 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Copy all project files
 COPY . .
 
-CMD ["sh", "-c", "poetry install --no-interaction --no-ansi --no-root > /dev/null 2>&1 && exec poetry run python3 -m bot.main"]
+CMD ["sh", "-c", "poetry install --no-interaction --no-ansi --no-root && exec poetry run python3 -m bot.main"]

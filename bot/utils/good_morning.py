@@ -10,6 +10,7 @@ from aiogram.types import FSInputFile
 from sqlalchemy import delete, select, update
 
 from bot.config import flags
+from bot.config.flags import GOOD_MORNING_HOUR, GOOD_MORNING_MINUTE
 from bot.config.settings import get_settings
 from bot.content.good_morning_content import list_morning_images, load_morning_phrases
 from bot.database import SessionLocal
@@ -131,7 +132,7 @@ async def send_good_morning(bot: Bot) -> bool:
 
     image_info = await _reserve_image()
     if image_info is None:
-        # уже залогировано внутри _get_random_image_path
+        # уже залогировано внутри _reserve_image
         return False
     image_path, image_id, _filename = image_info
 
@@ -171,7 +172,7 @@ def _pick_good_morning_phrase() -> str:
         return "Доброе утро"
 
 
-async def schedule_good_morning(bot: Bot, hour: int = 9, minute: int = 00) -> None:
+async def schedule_good_morning(bot: Bot, hour: int = GOOD_MORNING_HOUR, minute: int = GOOD_MORNING_MINUTE) -> None:
     """
     Периодически отправляет утреннее сообщение по будням.
 

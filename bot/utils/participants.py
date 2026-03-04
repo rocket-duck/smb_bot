@@ -2,6 +2,7 @@ import logging
 from datetime import UTC, datetime
 
 from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
 
 from bot.database import SessionLocal
 from bot.models import Participant
@@ -26,13 +27,13 @@ async def update_participant(message) -> None:
         return
 
     user = message.from_user
-    chat_id = str(message.chat.id)
+    chat_id = message.chat.id
     async with SessionLocal() as session:
         try:
             result = await session.execute(
                 select(Participant).filter(
                     Participant.chat_id == chat_id,
-                    Participant.user_id == str(user.id),
+                    Participant.user_id == user.id,
                 )
             )
             participant = result.scalars().first()
@@ -41,7 +42,7 @@ async def update_participant(message) -> None:
                 # Создаем новую запись для участника с названием чата
                 participant = Participant(
                     chat_id=chat_id,
-                    user_id=str(user.id),
+                    user_id=user.id,
                     full_name=user.full_name,
                     username=user.username or "",
                     chat_title=message.chat.title or "",
@@ -56,6 +57,6 @@ async def update_participant(message) -> None:
                 participant.chat_title = message.chat.title or ""
                 await session.commit()
                 logging.debug("Обновлена активность участника в чате %s.", chat_id)
-        except Exception as e:
+        except SQLAlchemyError as e:
             await session.rollback()
-            logging.error(f"Ошибка при обновлении участника: {e}")
+            logging.error("Ошибка при обновлении участника: %s", e)

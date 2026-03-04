@@ -10,6 +10,7 @@ from aiogram.types import (
 )
 
 import bot.config.flags as flag
+from bot.config.flags import REACTION_TTL_SECONDS, WHO_REQUEST_COOLDOWN_SECONDS
 from bot.config.settings import get_settings
 from bot.messages.bot_tag import handle_bot_tag
 from bot.messages.help_epa_message import get_auth_issue_response
@@ -19,8 +20,6 @@ from bot.messages.who_request import handle_who_request, is_who_request_trigger
 from bot.storage.cache import cache
 from bot.utils.participants import update_participant
 
-REACTION_TTL_SECONDS = 24 * 60 * 60
-WHO_REQUEST_COOLDOWN_SECONDS = 60 * 60
 WHO_REQUEST_COOLDOWN_KEY = "who_request"
 settings = get_settings()
 
@@ -37,7 +36,7 @@ def should_process_text(text: str) -> bool:
         logging.debug("Сообщение равно упоминанию бота, обработка прекращена.")
         return False
     if text.startswith("/"):
-        logging.debug(f"Сообщение {text} игнорируется, так как это команда.")
+        logging.debug("Сообщение %s игнорируется, так как это команда.", text)
         return False
     if not flag.KEYWORD_RESPONSES_ENABLE:
         logging.debug("Функция парсинга сообщений отключена")
@@ -83,7 +82,7 @@ async def handle_message(message: Message, state: FSMContext) -> None:
             bot_roll = random.randint(1, 20)
             user_roll = random.randint(1, 20)
             logging.debug(
-                f"Кубики who_request: пользователь={user_roll}, бот={bot_roll}"
+                "Кубики who_request: пользователь=%d, бот=%d", user_roll, bot_roll
             )
             sent = False
             if user_roll == 1:
@@ -154,10 +153,10 @@ def extract_keyword(message: Message) -> str:
     Извлекает ключевое слово из сообщения.
     """
     if not message.text:
-        logging.debug(f"Сообщение не содержит текста: {message}")
+        logging.debug("Сообщение не содержит текста: %s", message)
         return ""
     keyword: str = message.text.strip().lower()
-    logging.debug(f"Извлечённое ключевое слово: {keyword}")
+    logging.debug("Извлечённое ключевое слово: %s", keyword)
     return keyword
 
 
@@ -173,7 +172,7 @@ async def process_results(message: Message, results: list) -> None:
 
     if filtered_results:
         response: str = format_response(filtered_results)
-        logging.debug(f"Отправка ссылки: {response}")
+        logging.debug("Отправка ссылки: %s", response)
         like_button = InlineKeyboardButton(text="👍 0", callback_data="like_init")
         dislike_button = InlineKeyboardButton(text="👎 0", callback_data="dislike_init")
         keyboard = InlineKeyboardMarkup(
@@ -205,7 +204,9 @@ async def filter_recent_links(chat_id: int, results: list) -> list:
     for name, url in results:
         if await cache.is_recent_link(chat_id, url):
             logging.debug(
-                f"Пропуск отправки ссылки '{url}' для чата {chat_id} (отправлялась недавно)."
+                "Пропуск отправки ссылки '%s' для чата %s (отправлялась недавно).",
+                url,
+                chat_id,
             )
         else:
             filtered_results.append((name, url))

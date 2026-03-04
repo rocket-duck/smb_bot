@@ -11,6 +11,8 @@ from bot.modules.commands_list import set_bot_commands
 from bot.utils.good_morning import schedule_good_morning
 from bot.utils.handlers import register_handlers
 
+_BG_TASKS: set[asyncio.Task] = set()
+
 
 async def run_bot():
     """
@@ -34,7 +36,14 @@ async def run_bot():
     await set_bot_commands(bot)
 
     # Планируем отправку утреннего сообщения (проверка флага внутри модуля)
-    asyncio.create_task(schedule_good_morning(bot))
+    morning_task = asyncio.create_task(schedule_good_morning(bot))
+    _BG_TASKS.add(morning_task)
+    morning_task.add_done_callback(_BG_TASKS.discard)
+    morning_task.add_done_callback(
+        lambda t: logging.error("schedule_good_morning завершился с ошибкой: %s", t.exception())
+        if not t.cancelled() and t.exception()
+        else None
+    )
 
     # Запуск бота
     logging.info("Запуск бота...")

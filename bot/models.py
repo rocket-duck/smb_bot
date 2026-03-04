@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, DateTime, Integer, String, func
+from sqlalchemy import BigInteger, Boolean, Column, DateTime, Integer, String, UniqueConstraint, func
 
 from bot.database import Base
 
@@ -7,21 +7,22 @@ class LastWinner(Base):
     __tablename__ = "last_winner"
 
     id = Column(Integer, primary_key=True, index=True)
-    chat_id = Column(String, unique=True, index=True, nullable=False)
+    chat_id = Column(BigInteger, unique=True, index=True, nullable=False)
     chat_title = Column(String, nullable=True)
     last_datetime = Column(DateTime, default=func.now(), nullable=False)
-    winner_user_id = Column(String, nullable=False)
+    winner_user_id = Column(BigInteger, nullable=False)
     winner_full_name = Column(String, nullable=False)
     winner_username = Column(String, nullable=True)
 
 
 class WinnerStats(Base):
     __tablename__ = "winner_stats"
+    __table_args__ = (UniqueConstraint("chat_id", "user_id", name="uq_winner_stats_chat_user"),)
 
     id = Column(Integer, primary_key=True, index=True)
-    chat_id = Column(String, index=True, nullable=False)
+    chat_id = Column(BigInteger, index=True, nullable=False)
     chat_title = Column(String, nullable=True)
-    user_id = Column(String, index=True, nullable=False)
+    user_id = Column(BigInteger, index=True, nullable=False)
     full_name = Column(String, nullable=False)
     username = Column(String, nullable=True)
     wins = Column(Integer, default=0, nullable=False)
@@ -29,10 +30,11 @@ class WinnerStats(Base):
 
 class Participant(Base):
     __tablename__ = "participants"
+    __table_args__ = (UniqueConstraint("chat_id", "user_id", name="uq_participants_chat_user"),)
 
     id = Column(Integer, primary_key=True, index=True)
-    chat_id = Column(String, index=True, nullable=False)
-    user_id = Column(String, index=True, nullable=False)
+    chat_id = Column(BigInteger, index=True, nullable=False)
+    user_id = Column(BigInteger, index=True, nullable=False)
     full_name = Column(String, nullable=False)
     username = Column(String, nullable=True)
     chat_title = Column(String, nullable=True)
@@ -43,7 +45,7 @@ class Chat(Base):
     __tablename__ = "chats"
 
     id = Column(Integer, primary_key=True, index=True)
-    chat_id = Column(String, unique=True, nullable=False, index=True)
+    chat_id = Column(BigInteger, unique=True, nullable=False, index=True)
     title = Column(String, nullable=True)
     added_by = Column(String, nullable=True)
     added_at = Column(DateTime, default=func.now(), nullable=False)
@@ -56,7 +58,7 @@ class SearchLog(Base):
     __tablename__ = "search_logs"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(String, nullable=False)
+    user_id = Column(BigInteger, nullable=False)
     username = Column(String, nullable=True)
     full_name = Column(String, nullable=False)
     query = Column(String, nullable=False)

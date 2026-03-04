@@ -29,7 +29,7 @@ async def session_local(monkeypatch):
 async def test_add_remove_get_chats(session_local):
     await chat_manager.add_chat_async(1, "Test Chat", "adder")
     async with session_local() as db:
-        result = await db.execute(select(Chat).filter(Chat.chat_id == "1"))
+        result = await db.execute(select(Chat).filter(Chat.chat_id == 1))
         chat = result.scalars().first()
         assert chat is not None
         assert chat.title == "Test Chat"
@@ -39,13 +39,13 @@ async def test_add_remove_get_chats(session_local):
     assert await chat_manager.remove_chat_async(1, "remover") is True
     assert await chat_manager.remove_chat_async(1, "remover") is False
     async with session_local() as db:
-        result = await db.execute(select(Chat).filter(Chat.chat_id == "1"))
+        result = await db.execute(select(Chat).filter(Chat.chat_id == 1))
         chat = result.scalars().first()
         assert chat.deleted is True
         assert chat.deleted_by == "remover"
 
     chats = await chat_manager.get_all_chats_async()
-    assert {"chat_id": "1", "title": "Test Chat", "deleted": True} in chats
+    assert {"chat_id": 1, "title": "Test Chat", "deleted": True} in chats
 
 
 @pytest.mark.asyncio
@@ -57,7 +57,7 @@ async def test_add_chat_restores_deleted(session_local):
     await chat_manager.add_chat_async(1, "Test Chat", "adder")
 
     async with session_local() as db:
-        result = await db.execute(select(Chat).filter(Chat.chat_id == "1"))
+        result = await db.execute(select(Chat).filter(Chat.chat_id == 1))
         chat = result.scalars().first()
         assert chat is not None
         assert chat.deleted is False
@@ -67,19 +67,19 @@ async def test_add_chat_restores_deleted(session_local):
 
 @pytest.mark.asyncio
 async def test_game_engine_updates_and_random(session_local):
-    await game_engine.update_last_winner("1", "Chat", "u1", "User One", "user1")
-    assert await game_engine.is_new_day("1") is False
+    await game_engine.update_last_winner(1, "Chat", 1001, "User One", "user1")
+    assert await game_engine.is_new_day(1) is False
     async with session_local() as db:
-        result = await db.execute(select(LastWinner).filter(LastWinner.chat_id == "1"))
+        result = await db.execute(select(LastWinner).filter(LastWinner.chat_id == 1))
         last = result.scalars().first()
-        assert last.winner_user_id == "u1"
+        assert last.winner_user_id == 1001
 
-    await game_engine.update_winner_stats("1", "Chat", "u1", "User One", "user1")
-    await game_engine.update_winner_stats("1", "Chat", "u1", "User One", "user1")
+    await game_engine.update_winner_stats(1, "Chat", 1001, "User One", "user1")
+    await game_engine.update_winner_stats(1, "Chat", 1001, "User One", "user1")
     async with session_local() as db:
         result = await db.execute(
             select(WinnerStats).filter(
-                WinnerStats.chat_id == "1", WinnerStats.user_id == "u1"
+                WinnerStats.chat_id == 1, WinnerStats.user_id == 1001
             )
         )
         stats = result.scalars().first()
@@ -89,31 +89,31 @@ async def test_game_engine_updates_and_random(session_local):
         db.add_all(
             [
                 Participant(
-                    chat_id="1",
-                    user_id="u1",
+                    chat_id=1,
+                    user_id=1001,
                     full_name="User One",
                     username="user1",
                 ),
                 Participant(
-                    chat_id="1",
-                    user_id="u2",
+                    chat_id=1,
+                    user_id=1002,
                     full_name="User Two",
                     username="user2",
                 ),
             ]
         )
         await db.commit()
-    participant = await game_engine.get_random_participant("1")
-    assert participant.user_id in {"u1", "u2"}
+    participant = await game_engine.get_random_participant(1)
+    assert participant.user_id in {1001, 1002}
 
     from datetime import timedelta
 
     async with session_local() as db:
-        result = await db.execute(select(LastWinner).filter(LastWinner.chat_id == "1"))
+        result = await db.execute(select(LastWinner).filter(LastWinner.chat_id == 1))
         last = result.scalars().first()
         last.last_datetime = last.last_datetime - timedelta(days=1)
         await db.commit()
-    assert await game_engine.is_new_day("1") is True
+    assert await game_engine.is_new_day(1) is True
 
 
 @pytest.mark.asyncio
@@ -130,7 +130,7 @@ async def test_update_participant_sets_last_active(session_local):
     async with session_local() as db:
         result = await db.execute(
             select(Participant).filter(
-                Participant.chat_id == "1", Participant.user_id == "123"
+                Participant.chat_id == 1, Participant.user_id == 123
             )
         )
         participant = result.scalars().first()
@@ -174,7 +174,7 @@ async def test_update_participant_refreshes_last_active(session_local, monkeypat
     async with session_local() as db:
         result = await db.execute(
             select(Participant).filter(
-                Participant.chat_id == "1", Participant.user_id == "123"
+                Participant.chat_id == 1, Participant.user_id == 123
             )
         )
         participant = result.scalars().first()
@@ -191,7 +191,7 @@ async def test_update_participant_refreshes_last_active(session_local, monkeypat
     async with session_local() as db:
         result = await db.execute(
             select(Participant).filter(
-                Participant.chat_id == "1", Participant.user_id == "123"
+                Participant.chat_id == 1, Participant.user_id == 123
             )
         )
         participant = result.scalars().first()

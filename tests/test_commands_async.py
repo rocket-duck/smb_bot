@@ -64,7 +64,7 @@ async def test_log_search_request_db(search_session_local):
         result = await session.execute(select(SearchLog))
         log = result.scalars().first()
         assert log is not None
-        assert log.user_id == "1"
+        assert log.user_id == 1
         assert log.query == "hello"
 
 

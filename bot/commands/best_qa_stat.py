@@ -2,6 +2,7 @@ import logging
 
 from aiogram.types import Message
 from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
 
 from bot.config.flags import BEST_QA_STAT_ENABLE
 from bot.database import SessionLocal
@@ -10,7 +11,7 @@ from bot.utils.command_registry import command
 from bot.utils.game_engine import format_declension
 
 
-async def get_stats(chat_id: str) -> list:
+async def get_stats(chat_id: int) -> list:
     """Получает статистику победителей для заданного чата."""
     async with SessionLocal() as session:
         try:
@@ -20,7 +21,7 @@ async def get_stats(chat_id: str) -> list:
                 .order_by(WinnerStats.wins.desc())
             )
             return result.scalars().all()
-        except Exception as e:
+        except SQLAlchemyError as e:
             logging.error("Ошибка получения статистики: %s", e)
             return []
 
@@ -42,7 +43,7 @@ async def handle_best_qa_stat(message: Message) -> None:
         await message.answer("Статистика доступна только для групповых чатов.")
         return
 
-    chat_id = str(message.chat.id)
+    chat_id = message.chat.id
     stats = await get_stats(chat_id)
     if not stats:
         await message.answer("Статистика по лучшим тестировщикам пока пуста.")

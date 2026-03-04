@@ -18,7 +18,7 @@ async def handle_best_qa(message: Message) -> None:
         await message.answer("Эта команда доступна только в групповых чатах.")
         return
 
-    chat_id = str(message.chat.id)
+    chat_id = message.chat.id
     if not await is_new_day(chat_id):
         last = await get_last_winner(chat_id)
         if last:
@@ -37,14 +37,14 @@ async def handle_best_qa(message: Message) -> None:
     await update_last_winner(
         chat_id,
         message.chat.title or "Личный чат",
-        str(participant.user_id),
+        participant.user_id,
         participant.full_name,
         participant.username,
     )
     await update_winner_stats(
         chat_id,
         message.chat.title or "Личный чат",
-        str(participant.user_id),
+        participant.user_id,
         participant.full_name,
         participant.username,
     )

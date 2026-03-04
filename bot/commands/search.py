@@ -5,10 +5,11 @@ import openai
 from aiogram import Router, types
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from openai import BadRequestError, RateLimitError
+from openai import BadRequestError, OpenAIError, RateLimitError
 from sqlalchemy import insert
+from sqlalchemy.exc import SQLAlchemyError
 
-from bot.config.flags import SEARCH_ENABLE
+from bot.config.flags import SEARCH_ENABLE, SEARCH_MAX_QUERY_LEN, SEARCH_TIMEOUT_SECONDS
 from bot.config.gpt_prompt import PROMPT
 from bot.config.settings import get_settings
 from bot.database import SessionLocal
@@ -18,11 +19,23 @@ settings = get_settings()
 openai.api_key = settings.openai_api_key
 router = Router()
 
+_timeout_tasks: set[asyncio.Task] = set()
+
 
 class SearchState(StatesGroup):
     """Состояния для диалога поиска."""
 
     waiting_for_query = State()
+
+
+def _track_timeout_task(task: asyncio.Task) -> None:
+    _timeout_tasks.add(task)
+    task.add_done_callback(_timeout_tasks.discard)
+    task.add_done_callback(
+        lambda t: logging.error("search_timeout завершился с ошибкой: %s", t.exception())
+        if not t.cancelled() and t.exception()
+        else None
+    )
 
 
 @command("search", flag=SEARCH_ENABLE, router=router)
@@ -53,14 +66,19 @@ async def cmd_search(message: types.Message, state: FSMContext) -> None:
         )
         await state.update_data(user_id=message.from_user.id)
         await state.set_state(SearchState.waiting_for_query)
-        asyncio.create_task(search_timeout(message, state))
+        _track_timeout_task(asyncio.create_task(search_timeout(message, state)))
 
 
 async def process_immediate_query(
     user_query: str, message: types.Message, state: FSMContext
 ) -> None:
     """Обрабатывает запрос, который можно выполнить сразу."""
-    # Сохраняем запрос в базе данных
+    if len(user_query) > SEARCH_MAX_QUERY_LEN:
+        await message.answer(
+            f"Запрос слишком длинный (максимум {SEARCH_MAX_QUERY_LEN} символов)."
+        )
+        await state.clear()
+        return
     await log_search_request_db(message, user_query)
     await message.answer("Обрабатываю ваш запрос...")
     answer: str = await query_openai(user_query, message)
@@ -70,10 +88,12 @@ async def process_immediate_query(
 
 async def search_timeout(message: types.Message, state: FSMContext) -> None:
     """Отменяет режим ожидания, если не поступил запрос."""
-    await asyncio.sleep(120)
+    await asyncio.sleep(SEARCH_TIMEOUT_SECONDS)
     current_state: str | None = await state.get_state()
     if current_state == SearchState.waiting_for_query.state:
-        logging.info("Таймаут ожидания запроса /search (120 секунд).")
+        logging.info(
+            "Таймаут ожидания запроса /search (%d секунд).", SEARCH_TIMEOUT_SECONDS
+        )
         await message.answer(
             "Код ошибки R0604.\nВремя ожидания истекло, операция отменена."
         )
@@ -116,7 +136,7 @@ async def log_search_request_db(message: types.Message, user_query: str) -> None
     async with SessionLocal() as session:
         try:
             stmt = insert(SearchLog).values(
-                user_id=str(message.from_user.id),
+                user_id=message.from_user.id,
                 username=message.from_user.username or "",
                 full_name=message.from_user.full_name,
                 query=user_query,
@@ -124,7 +144,7 @@ async def log_search_request_db(message: types.Message, user_query: str) -> None
             )
             await session.execute(stmt)
             await session.commit()
-        except Exception as e:
+        except SQLAlchemyError as e:
             await session.rollback()
             logging.error("Ошибка при записи лога запроса в базу данных: %s", e)
 
@@ -150,17 +170,11 @@ async def query_openai(user_query: str, message: types.Message) -> str:
         logging.debug("Получен ответ от OpenAI.")
         return answer
     except RateLimitError as e:
-        logging.error(
-            "Rate limit error from OpenAI: %s",
-            e,
-        )
+        logging.error("Rate limit error from OpenAI: %s", e)
         return "Превышена квота OpenAI. Попробуйте позже."
     except BadRequestError as e:
-        logging.error(
-            "Invalid request error from OpenAI: %s",
-            e,
-        )
+        logging.error("Invalid request error from OpenAI: %s", e)
         return "Некорректный запрос к OpenAI. Обратитесь в поддержку."
-    except Exception as e:
+    except OpenAIError as e:
         logging.error("Ошибка вызова OpenAI API: %s", e)
         return "Произошла ошибка при обработке запроса. Попробуйте позже."
