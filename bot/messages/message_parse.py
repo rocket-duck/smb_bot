@@ -1,7 +1,7 @@
 import logging
 import re
 
-from bot.dicts.links_dict import LINKS
+from bot.content.dicts_loader import load_links
 from bot.messages.errors_parse import build_error_defs
 
 
@@ -54,9 +54,10 @@ def find_links_by_keyword(keyword: str, enabled: bool):
         return []
     logging.debug(f"Поиск по ключевому слову: {keyword}")
     raw_results: list[tuple[str, str]] = []
+    links = load_links()
 
     # Прямой поиск по ключам разделов
-    for key, obj in LINKS.items():
+    for key, obj in links.items():
         if key.lower() in keyword:
             # Если у раздела есть подразделы — возвращаем их
             if obj.get("subsections"):
@@ -74,7 +75,7 @@ def find_links_by_keyword(keyword: str, enabled: bool):
             return raw_results
 
     # Запускаем рекурсивный поиск
-    _recursive_search(LINKS, keyword, raw_results)
+    _recursive_search(links, keyword, raw_results)
 
     return raw_results[:3]
 

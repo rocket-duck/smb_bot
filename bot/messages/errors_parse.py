@@ -1,6 +1,6 @@
 import re
 
-from bot.dicts.errors_dict import raw_errors
+from bot.content.dicts_loader import load_errors
 
 
 def _build_code_pattern(code: str) -> str:
@@ -25,11 +25,11 @@ def _build_code_pattern(code: str) -> str:
 
 def build_error_defs(enabled: bool):
     """
-    Generate error definitions based on raw_errors if enabled is True.
+    Generate error definitions based on errors dict if enabled is True.
     """
     errors = []
     if enabled:
-        for code, description in raw_errors:
+        for code, description in load_errors():
             # Build full code pattern (letters B, C, A, V with variants)
             full_code_pattern = _build_code_pattern(code)
             alternatives = [full_code_pattern]

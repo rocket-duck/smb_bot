@@ -11,6 +11,6 @@ coverage.xml
 .mypy_cache/
 *.cast
 .idea/
-data/
 .vscode/
 .continue/
+.claude/

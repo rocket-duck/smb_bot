@@ -25,9 +25,7 @@ async def handle_maslina(message: Message, maslina_enable) -> bool:
     if not message.text:
         return False
     if contains_maslina(message.text):
-        # Определяем путь к картинке.
-        base_dir = Path(__file__).resolve().parent.parent
-        image_path = base_dir / "utils" / "img" / "maslina.jpeg"
+        image_path = Path("data") / "img" / "maslina.jpeg"
         if not image_path.exists():
             logging.error(f"Картинка не найдена по пути: {image_path}")
             return False

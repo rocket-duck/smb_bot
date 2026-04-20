@@ -5,11 +5,9 @@ from pathlib import Path
 from aiogram.types import FSInputFile, Message
 
 from bot.config.settings import get_settings
-from bot.dicts import who_request_dict
+from bot.content.dicts_loader import load_triggers
 
-# Путь к папке с изображениями
-BASE_DIR = Path(__file__).resolve().parent.parent
-IMG_DIR = BASE_DIR / "utils" / "img"
+IMG_DIR = Path("data") / "img"
 
 
 async def handle_who_request(
@@ -44,8 +42,7 @@ async def handle_who_request(
         return False
 
     logging.debug(
-        f"Обнаружен запрос '{message_text}' "
-        f"с одним из триггеров: {who_request_dict.TRIGGERS}"
+        "Обнаружен запрос '%s' с одним из триггеров who_request", message_text
     )
 
     image_name = force_image_name or "a_kto.jpg"
@@ -72,5 +69,5 @@ async def handle_who_request(
 def is_who_request_trigger(text: str) -> bool:
     return any(
         re.search(rf"\b{re.escape(trigger)}\b", text)
-        for trigger in who_request_dict.TRIGGERS
+        for trigger in load_triggers()
     )

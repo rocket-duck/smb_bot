@@ -1,16 +1,18 @@
 import pytest
 
-from bot.dicts.errors_dict import raw_errors
-from bot.dicts.links_dict import LINKS
+from bot.content.dicts_loader import load_errors, load_links
 from bot.messages.message_parse import find_links_by_keyword, parse_error_codes
 from bot.messages.messages import format_response
 
-# Только ключи из LINKS, у которых есть прямое поле 'url' или 'bot'
-VALID_LINK_KEYS = [k for k, v in LINKS.items() if "url" in v or "bot" in v]
+_links = load_links()
+_errors = load_errors()
+
+# Только ключи из links, у которых есть прямое поле 'url' или 'bot'
+VALID_LINK_KEYS = [k for k, v in _links.items() if "url" in v or "bot" in v]
 
 
-# 1) Тестируем, что каждый код из raw_errors парсится:
-@pytest.mark.parametrize("code,description", raw_errors)
+# 1) Тестируем, что каждый код из errors парсится:
+@pytest.mark.parametrize("code,description", _errors)
 def test_parse_error_codes_exact_match(code, description):
     matches = parse_error_codes(code, True)
     assert (code, description) in matches, (

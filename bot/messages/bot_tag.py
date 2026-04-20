@@ -3,8 +3,7 @@ from pathlib import Path
 from aiogram import types
 from aiogram.types import FSInputFile
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-IMG_DIR = BASE_DIR / "utils" / "img"
+IMG_DIR = Path("data") / "img"
 
 
 def normalize_bot_username(bot_username: str) -> str:

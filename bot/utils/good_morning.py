@@ -1,6 +1,5 @@
 import asyncio
 import logging
-import os
 import random
 from datetime import UTC, datetime, time, timedelta, timezone
 from pathlib import Path
@@ -16,10 +15,8 @@ from bot.content.good_morning_content import list_morning_images, load_morning_p
 from bot.database import SessionLocal
 from bot.models import MorningImage
 
-IMAGES_DIR = os.path.join(os.path.dirname(__file__), "morning_pic")
-PHRASES_FILE = (
-    Path(__file__).resolve().parent.parent / "dicts" / "good_morning_phrases.json"
-)
+IMAGES_DIR = Path("data") / "morning_pic"
+PHRASES_FILE = Path("data") / "dicts" / "good_morning_phrases.json"
 
 # Часовой пояс UTC+3 (например, Москва)
 MOSCOW_TZ = timezone(timedelta(hours=3))
@@ -69,13 +66,13 @@ async def _reserve_image() -> tuple[str, int, str] | None:
     """
     Возвращает путь и идентификатор случайной картинки и помечает её как «использованную».
     """
-    if not os.path.isdir(IMAGES_DIR):
+    if not IMAGES_DIR.is_dir():
         logging.warning(
             "Папка с картинками для доброго утра не найдена: %s", IMAGES_DIR
         )
         return None
 
-    files = list_morning_images(Path(IMAGES_DIR))
+    files = list_morning_images(IMAGES_DIR)
 
     if not files:
         logging.warning(
@@ -94,7 +91,7 @@ async def _reserve_image() -> tuple[str, int, str] | None:
         record = random.choice(available)
         record.used = True
         await session.commit()
-        return os.path.join(IMAGES_DIR, record.filename), record.id, record.filename
+        return str(IMAGES_DIR / record.filename), record.id, record.filename
 
 
 async def _finalize_image_usage(image_id: int, success: bool) -> None:

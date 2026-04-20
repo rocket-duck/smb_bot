@@ -2,12 +2,12 @@ import logging
 
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
-from bot.dicts.links_dict import LINKS
+from bot.content.dicts_loader import load_links
 
 
 def create_main_menu(user_id: int):
     """
-    Создаёт главное меню на основе LINKS.
+    Создаёт главное меню на основе словаря ссылок.
     :param user_id: ID пользователя (для уникальных callback_data)
     :return: Tuple (InlineKeyboardMarkup с кнопками, название меню)
     """
@@ -15,8 +15,9 @@ def create_main_menu(user_id: int):
         raise ValueError("user_id не должен быть None")
     logging.debug(f"Создание главного меню. user_id={user_id}")
 
+    links = load_links()
     buttons = []
-    for section, content in LINKS.items():
+    for section, content in links.items():
         url = content.get("url")
         subsections = content.get("subsections")
         key = content.get("key")
@@ -49,10 +50,11 @@ def create_submenu(menu_key: str, user_id: int):
         raise ValueError("user_id не должен быть None")
     logging.debug(f"Создание подменю. menu_key={menu_key}, user_id={user_id}")
 
+    links = load_links()
     # Поиск данных для подменю по ключу
-    data = next((v for k, v in LINKS.items() if v.get("key") == menu_key), None)
+    data = next((v for k, v in links.items() if v.get("key") == menu_key), None)
     section_name = next(
-        (k for k, v in LINKS.items() if v.get("key") == menu_key), menu_key
+        (k for k, v in links.items() if v.get("key") == menu_key), menu_key
     )
     if not data:
         logging.error(f"Раздел '{menu_key}' отсутствует в LINKS.")

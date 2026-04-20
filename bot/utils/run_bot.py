@@ -8,6 +8,7 @@ from bot.config.settings import get_settings
 from bot.config.telemetry import setup_sentry
 from bot.database import init_db
 from bot.modules.commands_list import set_bot_commands
+from bot.utils.data_init import init_data_dirs
 from bot.utils.good_morning import schedule_good_morning
 from bot.utils.handlers import register_handlers
 
@@ -21,6 +22,9 @@ async def run_bot():
     settings = get_settings()
     setup_logging(level=settings.log_level)
     setup_sentry(settings)
+
+    # Инициализация директорий data/ и дефолтных файлов
+    init_data_dirs()
 
     # Инициализация базы данных
     await init_db()

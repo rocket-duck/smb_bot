@@ -34,7 +34,7 @@ async def test_send_good_morning_no_chat_id(tmp_path, monkeypatch, gm_db):
     monkeypatch.setenv("OPENAI_API_KEY", "test-openai")
     monkeypatch.delenv("NFSW_CHAT_ID", raising=False)
     settings_module.get_settings.cache_clear()
-    monkeypatch.setattr(good_morning, "IMAGES_DIR", str(tmp_path / "img"))
+    monkeypatch.setattr(good_morning, "IMAGES_DIR", tmp_path / "img")
     phrases_file = tmp_path / "phrases.json"
     phrases_file.write_text('{"phrases":["x"]}')
     monkeypatch.setattr(good_morning, "PHRASES_FILE", phrases_file)
@@ -60,7 +60,7 @@ async def test_send_good_morning_sends_photo(tmp_path, monkeypatch, gm_db):
     monkeypatch.setenv("OPENAI_API_KEY", "test-openai")
     monkeypatch.setenv("NFSW_CHAT_ID", "123")
     settings_module.get_settings.cache_clear()
-    monkeypatch.setattr(good_morning, "IMAGES_DIR", str(img_dir))
+    monkeypatch.setattr(good_morning, "IMAGES_DIR", img_dir)
     monkeypatch.setattr(good_morning, "PHRASES_FILE", phrases_file)
 
     result = await good_morning.send_good_morning(bot)
@@ -85,7 +85,7 @@ async def test_images_do_not_repeat_until_cycle_complete(tmp_path, monkeypatch, 
     monkeypatch.setenv("OPENAI_API_KEY", "test-openai")
     monkeypatch.setenv("NFSW_CHAT_ID", "1")
     settings_module.get_settings.cache_clear()
-    monkeypatch.setattr(good_morning, "IMAGES_DIR", str(img_dir))
+    monkeypatch.setattr(good_morning, "IMAGES_DIR", img_dir)
     phrases_file = tmp_path / "phrases.json"
     phrases_file.write_text('{"phrases":["sarcastic"]}')
     monkeypatch.setattr(good_morning, "PHRASES_FILE", phrases_file)
