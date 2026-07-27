@@ -18,6 +18,7 @@ from bot.messages.maslina import handle_maslina
 from bot.messages.message_parse import find_links_by_keyword, parse_error_codes
 from bot.messages.who_request import handle_who_request, is_who_request_trigger
 from bot.storage.cache import cache
+from bot.utils.dushnila_engine import score_dushnila_message
 from bot.utils.participants import update_participant
 
 WHO_REQUEST_COOLDOWN_KEY = "who_request"
@@ -66,6 +67,9 @@ async def handle_message(message: Message, state: FSMContext) -> None:
 
     # Обновляем или добавляем участника в БД на основе сообщения
     await update_participant(message)
+
+    # Оценка сообщения по критериям душности (независимо от остальных флагов)
+    await score_dushnila_message(message)
 
     # Обработка дополнительных фановых триггеров
     await handle_bot_tag(message, settings.bot_username, flag.BOT_TAG_ENABLE)
@@ -284,6 +288,15 @@ async def handle_dislike_callback(callback_query: CallbackQuery) -> None:
         await callback_query.answer("👎")
 
 
+async def handle_dushnila_media_message(message: Message) -> None:
+    """
+    Обрабатывает медиа-сообщения (фото/видео), которые не доходят до
+    handle_message, так как у них не заполнено поле text (только caption).
+    """
+    await update_participant(message)
+    await score_dushnila_message(message)
+
+
 async def no_fsm_filter(message: Message, state: FSMContext) -> bool:
     """
     Фильтр для обработки сообщений, только если
@@ -302,6 +315,9 @@ def register_message_handlers(dp) -> None:
     Регистрирует глобальный обработчик сообщений.
     """
     dp.message.register(handle_message, no_fsm_filter)
+    dp.message.register(
+        handle_dushnila_media_message, lambda m: bool(m.photo or m.video)
+    )
     dp.callback_query.register(
         handle_like_callback, lambda c: c.data and c.data.startswith("like:")
     )
