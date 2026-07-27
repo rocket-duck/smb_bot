@@ -8,6 +8,7 @@ from bot.config.settings import get_settings
 from bot.config.telemetry import setup_sentry
 from bot.database import init_db
 from bot.modules.commands_list import set_bot_commands
+from bot.utils.best_qa_digest import schedule_best_qa_digest
 from bot.utils.data_init import init_data_dirs
 from bot.utils.dushnila_digest import schedule_dushnila_digest
 from bot.utils.good_morning import schedule_good_morning
@@ -56,6 +57,16 @@ async def run_bot():
     dushnila_digest_task.add_done_callback(_BG_TASKS.discard)
     dushnila_digest_task.add_done_callback(
         lambda t: logging.error("schedule_dushnila_digest завершился с ошибкой: %s", t.exception())
+        if not t.cancelled() and t.exception()
+        else None
+    )
+
+    # Планируем ежедневный автозапуск best_qa
+    best_qa_digest_task = asyncio.create_task(schedule_best_qa_digest(bot))
+    _BG_TASKS.add(best_qa_digest_task)
+    best_qa_digest_task.add_done_callback(_BG_TASKS.discard)
+    best_qa_digest_task.add_done_callback(
+        lambda t: logging.error("schedule_best_qa_digest завершился с ошибкой: %s", t.exception())
         if not t.cancelled() and t.exception()
         else None
     )

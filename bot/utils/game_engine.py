@@ -1,5 +1,4 @@
 import logging
-import random
 from datetime import UTC, datetime
 
 from aiogram.utils.markdown import hlink
@@ -102,16 +101,24 @@ async def is_new_day(chat_id: str) -> bool:
     return datetime.now(UTC).date() > last.last_datetime.date()
 
 
-async def get_random_participant(chat_id: str):
-    """Возвращает случайного участника из таблицы участников для заданного чата."""
+async def get_participants(chat_id: str) -> list[Participant]:
+    """Возвращает список участников чата в стабильном порядке (по id)."""
     async with SessionLocal() as session:
         result = await session.execute(
-            select(Participant).filter(Participant.chat_id == chat_id)
+            select(Participant)
+            .filter(Participant.chat_id == chat_id)
+            .order_by(Participant.id)
         )
-        participants = result.scalars().all()
-    if participants:
-        return random.choice(participants)
-    return None
+        return list(result.scalars().all())
+
+
+def format_participant_list(participants: list[Participant]) -> str:
+    """Форматирует нумерованный список участников без статистики побед."""
+    lines = ["📋 Участники чата:"]
+    for index, participant in enumerate(participants, start=1):
+        username = f" ({participant.username})" if participant.username else ""
+        lines.append(f"{index}. {participant.full_name}{username}")
+    return "\n".join(lines)
 
 
 def format_declension(wins: int) -> str:

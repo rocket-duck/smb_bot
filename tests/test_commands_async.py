@@ -71,7 +71,7 @@ async def test_log_search_request_db(search_session_local):
 @pytest.mark.asyncio
 async def test_handle_best_qa(monkeypatch):
     message = SimpleNamespace(
-        chat=SimpleNamespace(id=1, title="Test", type="group"), answer=AsyncMock()
+        chat=SimpleNamespace(id=1, title="Test", type="group"), bot=AsyncMock()
     )
 
     async def fake_is_new_day(chat_id):
@@ -80,10 +80,11 @@ async def test_handle_best_qa(monkeypatch):
     monkeypatch.setattr(best_qa, "is_new_day", fake_is_new_day)
     participant = SimpleNamespace(user_id="1", full_name="User", username="user")
 
-    async def fake_get_random_participant(chat_id):
-        return participant
+    async def fake_get_participants(chat_id):
+        return [participant]
 
-    monkeypatch.setattr(best_qa, "get_random_participant", fake_get_random_participant)
+    monkeypatch.setattr(best_qa, "get_participants", fake_get_participants)
+    monkeypatch.setattr(best_qa, "SUSPENSE_SECONDS", 0)
     flags = {"lw": False, "ws": False}
 
     async def fake_update_last_winner(*a, **k):
@@ -102,7 +103,7 @@ async def test_handle_best_qa(monkeypatch):
 
     await best_qa.handle_best_qa(message)
 
-    message.answer.assert_awaited_once_with(
-        "Сегодня лучший тестировщик mention:1 🎉", parse_mode="HTML"
+    message.bot.send_message.assert_awaited_with(
+        1, "Сегодня лучший тестировщик mention:1 🎉", parse_mode="HTML"
     )
     assert flags["lw"] and flags["ws"]

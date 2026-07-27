@@ -103,8 +103,8 @@ async def test_game_engine_updates_and_random(session_local):
             ]
         )
         await db.commit()
-    participant = await game_engine.get_random_participant(1)
-    assert participant.user_id in {1001, 1002}
+    participants = await game_engine.get_participants(1)
+    assert {p.user_id for p in participants} == {1001, 1002}
 
     from datetime import timedelta
 

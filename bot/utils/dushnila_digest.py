@@ -57,9 +57,10 @@ async def schedule_dushnila_digest(
     bot: Bot, hour: int = DUSHNILA_DIGEST_HOUR, minute: int = DUSHNILA_DIGEST_MINUTE
 ) -> None:
     """
-    Периодически отправляет итоги дня по душности.
+    Периодически отправляет итоги дня по душности по будням.
 
-    По умолчанию каждый день в 18:00 по времени UTC+3 (MOSCOW_TZ).
+    По умолчанию в 18:00 по времени UTC+3 (MOSCOW_TZ), независимо от
+    часового пояса сервера. Выходные (сб/вс) пропускаются.
     """
     while True:
         if not flags.DUSHNILA_ENABLE:
@@ -78,6 +79,10 @@ async def schedule_dushnila_digest(
             next_run_local = target_today_local + timedelta(days=1)
         else:
             next_run_local = target_today_local
+
+        # Пропускаем выходные: weekday() 0-4 – будни, 5-6 – выходные
+        while next_run_local.weekday() >= 5:
+            next_run_local += timedelta(days=1)
 
         next_run_utc = next_run_local.astimezone(UTC)
         sleep_seconds = (next_run_utc - now_utc).total_seconds()
