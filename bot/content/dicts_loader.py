@@ -36,3 +36,14 @@ def load_links() -> dict:
     except Exception as exc:
         logging.warning("Не удалось загрузить словарь ссылок: %s", exc)
         return {}
+
+
+def load_dushnila_phrases() -> tuple[list[tuple[str, int]], list[tuple[str, int]]]:
+    try:
+        data = _load_json("dushnila_phrases.json")
+        positive = [tuple(item) for item in data["positive"]]
+        negative = [tuple(item) for item in data["negative"]]
+        return positive, negative
+    except Exception as exc:
+        logging.warning("Не удалось загрузить словарь фраз душнилы: %s", exc)
+        return [], []

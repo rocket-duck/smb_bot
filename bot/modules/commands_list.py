@@ -103,6 +103,38 @@ COMMAND_DEFINITIONS: list[dict[str, Any]] = [
         "group_chat": True,
         "visible_in_help": True,
     },
+    {
+        "command": "dushnila_weekly",
+        "description": "Топ душнил недели",
+        "flag": flags.DUSHNILA_WEEKLY_ENABLE,
+        "private_chat": False,
+        "group_chat": True,
+        "visible_in_help": True,
+    },
+    {
+        "command": "dushnila_me",
+        "description": "Личная статистика душности",
+        "flag": flags.DUSHNILA_ME_ENABLE,
+        "private_chat": False,
+        "group_chat": True,
+        "visible_in_help": True,
+    },
+    {
+        "command": "dushnila_why",
+        "description": "За что начислены баллы душности участнику",
+        "flag": flags.DUSHNILA_WHY_ENABLE,
+        "private_chat": False,
+        "group_chat": True,
+        "visible_in_help": True,
+    },
+    {
+        "command": "dushnila_reset_week",
+        "description": "Сбросить недельный рейтинг душнил",
+        "flag": flags.DUSHNILA_RESET_WEEK_ENABLE,
+        "private_chat": False,
+        "group_chat": True,
+        "visible_in_help": False,
+    },
 ]
 
 

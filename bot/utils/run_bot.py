@@ -9,6 +9,7 @@ from bot.config.telemetry import setup_sentry
 from bot.database import init_db
 from bot.modules.commands_list import set_bot_commands
 from bot.utils.data_init import init_data_dirs
+from bot.utils.dushnila_digest import schedule_dushnila_digest
 from bot.utils.good_morning import schedule_good_morning
 from bot.utils.handlers import register_handlers
 
@@ -45,6 +46,16 @@ async def run_bot():
     morning_task.add_done_callback(_BG_TASKS.discard)
     morning_task.add_done_callback(
         lambda t: logging.error("schedule_good_morning завершился с ошибкой: %s", t.exception())
+        if not t.cancelled() and t.exception()
+        else None
+    )
+
+    # Планируем ежедневные итоги дня по душности
+    dushnila_digest_task = asyncio.create_task(schedule_dushnila_digest(bot))
+    _BG_TASKS.add(dushnila_digest_task)
+    dushnila_digest_task.add_done_callback(_BG_TASKS.discard)
+    dushnila_digest_task.add_done_callback(
+        lambda t: logging.error("schedule_dushnila_digest завершился с ошибкой: %s", t.exception())
         if not t.cancelled() and t.exception()
         else None
     )

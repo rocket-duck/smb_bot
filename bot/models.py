@@ -1,4 +1,14 @@
-from sqlalchemy import BigInteger, Boolean, Column, DateTime, Integer, String, UniqueConstraint, func
+from sqlalchemy import (
+    BigInteger,
+    Boolean,
+    Column,
+    DateTime,
+    Index,
+    Integer,
+    String,
+    UniqueConstraint,
+    func,
+)
 
 from bot.database import Base
 
@@ -17,7 +27,9 @@ class LastWinner(Base):
 
 class WinnerStats(Base):
     __tablename__ = "winner_stats"
-    __table_args__ = (UniqueConstraint("chat_id", "user_id", name="uq_winner_stats_chat_user"),)
+    __table_args__ = (
+        UniqueConstraint("chat_id", "user_id", name="uq_winner_stats_chat_user"),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     chat_id = Column(BigInteger, index=True, nullable=False)
@@ -30,7 +42,9 @@ class WinnerStats(Base):
 
 class Participant(Base):
     __tablename__ = "participants"
-    __table_args__ = (UniqueConstraint("chat_id", "user_id", name="uq_participants_chat_user"),)
+    __table_args__ = (
+        UniqueConstraint("chat_id", "user_id", name="uq_participants_chat_user"),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     chat_id = Column(BigInteger, index=True, nullable=False)
@@ -72,3 +86,43 @@ class MorningImage(Base):
     filename = Column(String, unique=True, nullable=False)
     used = Column(Boolean, default=False, nullable=False)
     last_sent_at = Column(DateTime, nullable=True)
+
+
+class DushnilaEvent(Base):
+    __tablename__ = "dushnila_events"
+    __table_args__ = (
+        Index(
+            "ix_dushnila_events_chat_user_created",
+            "chat_id",
+            "user_id",
+            "created_at",
+        ),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    chat_id = Column(BigInteger, index=True, nullable=False)
+    user_id = Column(BigInteger, index=True, nullable=False)
+    full_name = Column(String, nullable=False)
+    username = Column(String, nullable=True)
+    message_id = Column(BigInteger, nullable=True)
+    category = Column(String, nullable=False)
+    reason = Column(String, nullable=False)
+    points = Column(Integer, nullable=False)
+    created_at = Column(DateTime, default=func.now(), nullable=False, index=True)
+
+
+class DushnilaStreak(Base):
+    __tablename__ = "dushnila_streaks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    chat_id = Column(BigInteger, unique=True, index=True, nullable=False)
+    user_id = Column(BigInteger, nullable=False)
+    count = Column(Integer, default=0, nullable=False)
+
+
+class DushnilaWeekReset(Base):
+    __tablename__ = "dushnila_week_resets"
+
+    id = Column(Integer, primary_key=True, index=True)
+    chat_id = Column(BigInteger, unique=True, index=True, nullable=False)
+    reset_at = Column(DateTime, nullable=False)
