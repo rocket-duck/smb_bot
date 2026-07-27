@@ -8,6 +8,7 @@ from bot.config import flags
 from bot.config.flags import DUSHNILA_DIGEST_HOUR, DUSHNILA_DIGEST_MINUTE
 from bot.config.settings import get_settings
 from bot.utils.dushnila_engine import (
+    format_display_name,
     format_points_declension,
     get_today_totals,
     level_for_score,
@@ -18,10 +19,11 @@ from bot.utils.good_morning import MOSCOW_TZ
 def format_digest(totals: list[tuple[int, str, str, int]]) -> str:
     """Форматирует итоги дня по душности."""
     lines = ["📊 Итоги дня по душности"]
-    for rank, (_, full_name, _, total) in enumerate(totals, start=1):
+    for rank, (_, full_name, username, total) in enumerate(totals, start=1):
+        name = format_display_name(full_name, username)
         declension = format_points_declension(total)
         level = level_for_score(total)
-        lines.append(f"{rank}. {full_name} — {total} {declension} {level}")
+        lines.append(f"{rank}. {name} — {total} {declension} {level}")
     return "\n".join(lines)
 
 

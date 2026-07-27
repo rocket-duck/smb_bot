@@ -196,3 +196,14 @@ def test_format_points_declension():
     assert engine.format_points_declension(11) == "баллов"
     assert engine.format_points_declension(0) == "баллов"
     assert engine.format_points_declension(-2) == "балла"
+
+
+# ── format_display_name ──────────────────────────────────────────────────────
+
+
+def test_format_display_name_with_username():
+    assert engine.format_display_name("Игорь", "duck") == "Игорь (duck)"
+
+
+def test_format_display_name_without_username():
+    assert engine.format_display_name("Игорь", "") == "Игорь"

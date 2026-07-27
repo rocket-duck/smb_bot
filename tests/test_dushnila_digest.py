@@ -71,14 +71,12 @@ async def test_send_digest_no_activity_skips_silently(monkeypatch, dushnila_db):
 
 @pytest.mark.asyncio
 async def test_send_digest_sends_totals(monkeypatch, dushnila_db):
-    from bot.models import DushnilaEvent, Participant
+    """Имя/username берутся из самого DushnilaEvent — без записи в Participant."""
+    from bot.models import DushnilaEvent
 
     _set_env(monkeypatch)
 
     async with dushnila_db() as session:
-        session.add(
-            Participant(chat_id=123, user_id=7, full_name="Masha", username="masha")
-        )
         session.add(
             DushnilaEvent(
                 chat_id=123,
@@ -99,5 +97,4 @@ async def test_send_digest_sends_totals(monkeypatch, dushnila_db):
     bot.send_message.assert_awaited_once()
     kwargs = bot.send_message.await_args_list[0].kwargs
     assert kwargs["chat_id"] == 123
-    assert "Masha" in kwargs["text"]
-    assert "5 баллов" in kwargs["text"]
+    assert "1. Masha (masha) — 5 баллов" in kwargs["text"]

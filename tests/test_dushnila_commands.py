@@ -58,8 +58,8 @@ async def test_dushnila_weekly_formats_top(monkeypatch):
     await dushnila_weekly.handle_dushnila_weekly(message)
     text = message.answer.await_args_list[0].args[0]
     assert "🏆 Топ душнил недели" in text
-    assert "1. Павел — 428 баллов" in text
-    assert "2. Семен — 311 баллов" in text
+    assert "1. Павел (pavel) — 428 баллов" in text
+    assert "2. Семен (semen) — 311 баллов" in text
 
 
 # ── /dushnila_me ─────────────────────────────────────────────────────────────

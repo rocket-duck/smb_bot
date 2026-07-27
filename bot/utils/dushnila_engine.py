@@ -41,6 +41,11 @@ def level_for_score(score: int) -> str:
     return level
 
 
+def format_display_name(full_name: str, username: str) -> str:
+    """Возвращает 'Имя (username)' без @ перед username; без скобок, если его нет."""
+    return f"{full_name} ({username})" if username else full_name
+
+
 def format_points_declension(points: int) -> str:
     """Возвращает правильную форму слова 'балл' в зависимости от числа points."""
     n = abs(points)
@@ -250,33 +255,25 @@ async def score_dushnila_message(message) -> None:
 async def _totals_since(
     chat_id: int, since: datetime
 ) -> list[tuple[int, str, str, int]]:
+    """Суммирует баллы по пользователям, используя имя/username, записанные
+    непосредственно в DushnilaEvent на момент начисления (самые свежие —
+    так как события отсортированы по created_at)."""
     async with SessionLocal() as session:
         result = await session.execute(
-            select(DushnilaEvent.user_id, func.sum(DushnilaEvent.points))
+            select(DushnilaEvent)
             .filter(DushnilaEvent.chat_id == chat_id, DushnilaEvent.created_at >= since)
-            .group_by(DushnilaEvent.user_id)
+            .order_by(DushnilaEvent.created_at)
         )
-        totals = dict(result.all())
-        if not totals:
-            return []
-        participants_result = await session.execute(
-            select(Participant).filter(
-                Participant.chat_id == chat_id, Participant.user_id.in_(totals.keys())
-            )
-        )
-        participant_map = {p.user_id: p for p in participants_result.scalars().all()}
+        events = result.scalars().all()
+
+    totals: dict[int, int] = {}
+    identity: dict[int, tuple[str, str]] = {}
+    for event in events:
+        totals[event.user_id] = totals.get(event.user_id, 0) + event.points
+        identity[event.user_id] = (event.full_name, event.username or "")
 
     rows = [
-        (
-            user_id,
-            (
-                participant_map[user_id].full_name
-                if user_id in participant_map
-                else str(user_id)
-            ),
-            participant_map[user_id].username if user_id in participant_map else "",
-            int(total),
-        )
+        (user_id, identity[user_id][0], identity[user_id][1], total)
         for user_id, total in totals.items()
     ]
     rows.sort(key=lambda row: row[3], reverse=True)
