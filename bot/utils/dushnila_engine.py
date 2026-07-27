@@ -273,7 +273,7 @@ async def _totals_since(
         identity[event.user_id] = (event.full_name, event.username or "")
 
     rows = [
-        (user_id, identity[user_id][0], identity[user_id][1], total)
+        (user_id, identity[user_id][0], identity[user_id][1], max(0, total))
         for user_id, total in totals.items()
     ]
     rows.sort(key=lambda row: row[3], reverse=True)
@@ -311,7 +311,7 @@ async def get_personal_weekly_total(chat_id: int, user_id: int) -> int:
             )
         )
         total = result.scalar()
-    return int(total or 0)
+    return max(0, int(total or 0))
 
 
 async def get_today_events(
